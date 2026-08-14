@@ -1,0 +1,17 @@
+{
+  "name": "tiquetevivo-netlify",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "netlify dev",
+    "serve": "netlify dev --offline",
+    "check": "node --check netlify/functions/create-order.js && node --check netlify/functions/list-orders.js && node --check netlify/functions/save-business.js && node --check netlify/functions/whatsapp-sender.js && node --check netlify/functions/save-lead.js && node --check netlify/functions/update-order.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.4"
+  },
+  "devDependencies": {
+    "netlify-cli": "^17.36.4"
+  }
+}

@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800;900&display=swap" rel="stylesheet">
+  <title>TiqueteVivo | Recibos digitales para lavanderias</title>
+  <meta name="description" content="Cambia los tiquetes de papel por recibos digitales enviados por WhatsApp. Controla pedidos, saldos y entregas desde un panel simple.">
+  <style>
+    :root {
+      --ink:#102033;
+      --muted:#5f6f83;
+      --line:#d9e4ef;
+      --paper:#f5f8fb;
+      --green:#17a668;
+      --green-dark:#0d6f49;
+      --blue:#2057b8;
+      --cyan:#dff7f1;
+      --yellow:#ffd166;
+      --white:#fff;
+    }
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink);background:#fff;line-height:1.5}
+    .wrap{width:min(1160px,calc(100% - 32px));margin:auto}
+    .nav{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.94);border-bottom:1px solid var(--line);backdrop-filter:blur(14px)}
+    .nav-in{min-height:70px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+    .brand{display:flex;align-items:center;gap:10px;font-size:21px;font-weight:950;text-decoration:none;color:var(--ink)}
+    .mark{width:36px;height:36px;border-radius:8px;background:var(--ink);color:white;display:grid;place-items:center;font-weight:950}
+    .links{display:flex;align-items:center;gap:20px;color:var(--muted);font-size:14px;font-weight:750}
+    .links a{text-decoration:none;color:inherit}
+    .btn{min-height:44px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;border:1px solid var(--ink);padding:0 18px;font-weight:900;background:var(--ink);color:white;text-decoration:none;cursor:pointer;box-shadow:0 8px 18px rgba(16,32,51,.08)}
+    .btn.green{background:var(--green);border-color:var(--green)}
+    .btn.light{background:white;color:var(--ink);border-color:var(--line);box-shadow:none}
+    .hero{min-height:calc(100vh - 70px);display:grid;align-items:center;padding:46px 0 28px;background:linear-gradient(90deg,rgba(255,255,255,.97),rgba(255,255,255,.9) 46%,rgba(255,255,255,.5)),url("https://images.unsplash.com/photo-1517677208171-0bc6725a3e60?auto=format&fit=crop&w=1800&q=80") center/cover}
+    .hero-grid{display:grid;grid-template-columns:minmax(0,1fr) 430px;gap:56px;align-items:center}
+    .pill{display:inline-flex;align-items:center;border:1px solid #b9e8d4;background:#ecfdf5;color:var(--green-dark);border-radius:999px;padding:8px 13px;font-size:13px;font-weight:950}
+    h1{margin:18px 0 16px;font-size:clamp(42px,7vw,78px);line-height:.96;letter-spacing:0;max-width:820px}
+    .lead{margin:0 0 28px;color:#334155;font-size:20px;max-width:710px}
+    .actions{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+    .trust{display:flex;flex-wrap:wrap;gap:18px;margin-top:26px;color:#475569;font-weight:800;font-size:14px}
+    .phone{background:#e7ded2;border:10px solid #111827;border-radius:30px;min-height:520px;padding:18px;box-shadow:0 26px 80px rgba(16,32,51,.28);position:relative}
+    .phone-top{height:34px;background:#075e54;color:white;border-radius:12px 12px 6px 6px;display:flex;align-items:center;padding:0 12px;font-size:13px;font-weight:900;margin-bottom:14px}
+    .bubble{background:#dcf8c6;border-radius:8px;padding:13px 14px;font-size:14px;margin:0 0 10px 38px;box-shadow:0 1px 2px rgba(0,0,0,.12)}
+    .bubble.client{margin:0 44px 10px 0;background:#fff}
+    .time{display:block;text-align:right;color:#667085;font-size:11px;margin-top:6px}
+    .quick-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:18px}
+    .quick-stat{background:rgba(255,255,255,.78);border:1px solid rgba(255,255,255,.6);border-radius:8px;padding:14px;backdrop-filter:blur(8px)}
+    .quick-stat strong{display:block;font-size:25px;line-height:1}.quick-stat span{color:#475569;font-size:12px;font-weight:800}
+    section{padding:78px 0}.head{max-width:760px;margin-bottom:34px}h2{margin:0 0 10px;font-size:clamp(30px,4vw,46px);line-height:1.08}.head p{margin:0;color:var(--muted);font-size:18px}
+    .grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.card{border:1px solid var(--line);border-radius:8px;padding:24px;background:#fff;box-shadow:0 12px 30px rgba(16,32,51,.04)}.card .tag{display:inline-flex;background:#eef6ff;color:var(--blue);border-radius:999px;padding:5px 9px;font-size:12px;font-weight:950;margin-bottom:14px}.card strong{display:block;font-size:20px;margin-bottom:8px}.card p{margin:0;color:var(--muted)}
+    .band{background:var(--paper);border-block:1px solid var(--line)}
+    .workflow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.step{background:white;border:1px solid var(--line);border-radius:8px;padding:22px}.step b{width:34px;height:34px;border-radius:8px;background:var(--ink);color:white;display:grid;place-items:center;margin-bottom:16px}.step strong{display:block;margin-bottom:8px}.step p{margin:0;color:var(--muted);font-size:14px}
+    .showcase{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:stretch}.quote{background:var(--ink);color:white;border-radius:8px;padding:28px}.quote p{font-size:24px;line-height:1.25;margin:0 0 18px}.quote small{color:#cbd5e1}.money{background:var(--cyan);border:1px solid #b8eee0;border-radius:8px;padding:28px}.money strong{display:block;font-size:42px;line-height:1;margin-bottom:12px}.money p{margin:0;color:#164e3b;font-weight:800}
+    .form{display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:790px}label{display:grid;gap:7px;font-weight:900;color:#344054}input,select{width:100%;border:1px solid var(--line);border-radius:8px;padding:13px 14px;font:inherit;background:#fff}.full{grid-column:1/-1}.success{display:none;margin-top:14px;color:var(--green-dark);font-weight:950}
+    footer{background:#101828;color:#cbd5e1;padding:36px 0}footer .wrap{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}footer a{color:#b9e8d4;text-decoration:none}
+    @media(max-width:900px){.links a:not(.btn){display:none}.hero{min-height:auto}.hero-grid,.grid,.workflow,.showcase,.form{grid-template-columns:1fr}.phone{min-height:auto}.quick-stats{grid-template-columns:1fr 1fr}.full{grid-column:auto}}
+    @media(max-width:520px){.quick-stats{grid-template-columns:1fr}.actions .btn{width:100%}.phone{border-width:8px;padding:14px}.bubble{margin-left:20px}.bubble.client{margin-right:20px}}
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <div class="wrap nav-in">
+      <a class="brand" href="#"><span class="mark">TV</span>TiqueteVivo</a>
+      <div class="links">
+        <a href="#beneficios">Beneficios</a>
+        <a href="#flujo">Como funciona</a>
+        <a href="#contacto">Contacto</a>
+        <a class="btn light" href="app.html">Ver demo</a>
+      </div>
+    </div>
+  </nav>
+
+  <main>
+    <header class="hero">
+      <div class="wrap hero-grid">
+        <div>
+          <span class="pill">Recibos digitales para negocios de servicio</span>
+          <h1>Tu lavanderia sin tiquetes perdidos ni saldos olvidados.</h1>
+          <p class="lead">Entrega a tus clientes un recibo profesional por WhatsApp, consulta cada pedido en segundos y avisa cuando todo esta listo para recoger.</p>
+          <div class="actions">
+            <a class="btn green" href="#contacto">Quiero una demo</a>
+            <a class="btn light" href="app.html">Probar el panel</a>
+          </div>
+          <div class="trust"><span>Menos llamadas repetidas</span><span>Cobros mas claros</span><span>Imagen mas profesional</span></div>
+        </div>
+        <div>
+          <div class="phone" aria-label="Ejemplo de recibo enviado por WhatsApp">
+            <div class="phone-top">WhatsApp Business</div>
+            <div class="bubble"><strong>MAJESTY | Tiquete #8707</strong><br>Hola Richard, recibimos:<br>2 tenis Vans, 1 Converse blanco.<br><br>Total $390.000<br>Abono $200.000<br><strong>Saldo $190.000</strong><span class="time">10:30 a.m.</span></div>
+            <div class="bubble"><strong>Tu pedido ya esta listo</strong><br>Puedes recogerlo hoy. Recuerda pagar el saldo pendiente.<span class="time">hoy</span></div>
+            <div class="bubble client">Gracias, paso esta tarde.</div>
+          </div>
+          <div class="quick-stats">
+            <div class="quick-stat"><strong>24/7</strong><span>avisos disponibles</span></div>
+            <div class="quick-stat"><strong>0</strong><span>papel requerido</span></div>
+            <div class="quick-stat"><strong>1</strong><span>panel central</span></div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <section id="beneficios">
+      <div class="wrap">
+        <div class="head">
+          <h2>Convierte cada pedido en una experiencia clara.</h2>
+          <p>Tu cliente sabe que dejo, cuanto pago, cuanto debe y cuando puede recoger. Tu equipo deja de buscar papel y empieza a atender mejor.</p>
+        </div>
+        <div class="grid">
+          <article class="card"><span class="tag">Control</span><strong>Pedidos siempre a la mano</strong><p>Busca por cliente, numero de tiquete o estado. Todo queda organizado desde el primer dia.</p></article>
+          <article class="card"><span class="tag">Cobro</span><strong>Saldos visibles antes de entregar</strong><p>Evita que se vayan prendas sin terminar el pago. El saldo aparece en el panel y en el mensaje.</p></article>
+          <article class="card"><span class="tag">Confianza</span><strong>WhatsApp con imagen profesional</strong><p>Recibos claros, mensajes consistentes y una experiencia moderna para tus clientes.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="band" id="flujo">
+      <div class="wrap">
+        <div class="head">
+          <h2>Del mostrador al WhatsApp en menos de un minuto.</h2>
+          <p>Un flujo simple para que cualquier persona del equipo pueda usarlo sin capacitacion larga.</p>
+        </div>
+        <div class="workflow">
+          <article class="step"><b>1</b><strong>Recibe el pedido</strong><p>Registra cliente, prendas, servicio, total y abono.</p></article>
+          <article class="step"><b>2</b><strong>Envia el recibo</strong><p>El cliente recibe el detalle en su WhatsApp.</p></article>
+          <article class="step"><b>3</b><strong>Actualiza el estado</strong><p>Marca recibido, en proceso, listo o entregado.</p></article>
+          <article class="step"><b>4</b><strong>Cobra sin olvidar</strong><p>El saldo queda visible antes de entregar.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap showcase">
+        <div class="quote"><p>“Se ve mas profesional y el cliente deja de preguntar tres veces por el mismo pedido.”</p><small>Ejemplo de impacto esperado para lavanderias con alto volumen de WhatsApp.</small></div>
+        <div class="money"><strong>$190.000</strong><p>Saldo pendiente visible en el recibo y en el panel antes de entregar la orden.</p></div>
+      </div>
+    </section>
+
+    <section class="band" id="contacto">
+      <div class="wrap">
+        <div class="head">
+          <h2>Agenda una demo para tu lavanderia.</h2>
+          <p>Te mostramos el panel con un ejemplo parecido a tu negocio y resolvemos si encaja con tu operacion diaria.</p>
+        </div>
+        <form class="form" id="leadForm">
+          <label>Nombre del negocio<input name="business" required placeholder="Ej: Majesty Lavanderia"></label>
+          <label>Tu nombre<input name="name" required placeholder="Ej: Richard Diaz"></label>
+          <label>WhatsApp<input name="phone" required placeholder="+57 300 123 4567"></label>
+          <label>Ciudad<input name="city" required placeholder="Medellin"></label>
+          <button class="btn green full" type="submit">Solicitar demo personalizada</button>
+        </form>
+        <div class="success" id="success">Listo. Recibimos tu solicitud y te contactaremos por WhatsApp.</div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap"><strong>TiqueteVivo</strong><span>Recibos digitales, control de pedidos y avisos por WhatsApp. <a href="app.html">Ver demo</a></span></div>
+  </footer>
+
+  <script>
+    document.getElementById("leadForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const form = e.currentTarget;
+      const btn = form.querySelector("button[type=submit]");
+      const data = Object.fromEntries(new FormData(form));
+      btn.disabled = true;
+      btn.textContent = "Enviando...";
+      try {
+        await fetch("/api/save-lead", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data)
+        });
+      } catch (err) {
+        console.warn("No se pudo enviar el lead al servidor:", err.message);
+      }
+      form.style.display = "none";
+      document.getElementById("success").style.display = "block";
+    });
+  </script>
+</body>
+</html>

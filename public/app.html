@@ -1,0 +1,572 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800;900&display=swap" rel="stylesheet">
+  <title>TiqueteVivo App</title>
+  <style>
+    :root { --ink:#101828; --muted:#667085; --line:#d9e2ec; --bg:#f6f8fb; --panel:#fff; --green:#18a058; --green-dark:#0d7040; --blue:#246bfe; --amber:#f5a524; --red:#d92d20; --soft-green:#ecfdf3; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; background:var(--bg); color:var(--ink); }
+    button,input,select,textarea { font:inherit; }
+    a { color:inherit; }
+    .shell { display:grid; grid-template-columns:250px minmax(0, 1fr); min-height:100vh; }
+    aside { background:#101828; color:#fff; padding:28px 24px; }
+    .brand { display:flex; align-items:center; gap:12px; font-size:22px; font-weight:950; margin-bottom:30px; }
+    .mark { width:40px; height:40px; border-radius:8px; background:#fff; color:#101828; display:grid; place-items:center; font-weight:950; }
+    .nav { display:grid; gap:8px; }
+    .nav button { border:0; border-radius:8px; padding:13px 14px; color:#d0d5dd; background:transparent; text-align:left; cursor:pointer; font-weight:800; }
+    .nav button.active,.nav button:hover { background:rgba(255,255,255,.1); color:#fff; }
+    .data-box { display:grid; gap:10px; margin-top:34px; }
+    .data-box label { color:#fff; font-size:15px; }
+    .data-status { border:1px solid rgba(255,255,255,.22); border-radius:8px; padding:12px; background:rgba(255,255,255,.08); color:#fff; font-weight:850; }
+    main { padding:28px; display:grid; gap:20px; align-content:start; min-width:0; }
+    .topbar { display:flex; justify-content:space-between; gap:12px; align-items:center; flex-wrap:wrap; }
+    h1 { margin:0; font-size:34px; line-height:1.05; letter-spacing:0; }
+    .sub { color:var(--muted); margin-top:6px; font-size:18px; }
+    .btn { border:1px solid var(--ink); background:var(--ink); color:#fff; min-height:40px; padding:0 14px; border-radius:8px; font-weight:800; font-size:13px; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:6px; white-space:nowrap; }
+    .btn.light { background:#fff; color:var(--ink); border-color:var(--line); }
+    .btn.green { background:var(--green); border-color:var(--green); }
+    .btn.whatsapp { background:#25d366; border-color:#25d366; color:#073b23; }
+    .btn:disabled { opacity:.65; cursor:not-allowed; }
+    .stats { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; }
+    .stat,.panel,.receipt { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:20px; }
+    .stat span { color:var(--muted); font-size:13px; font-weight:850; }
+    .stat strong { display:block; font-size:28px; margin-top:6px; }
+    .layout { display:grid; grid-template-columns:minmax(0, 1fr) minmax(320px, 400px); gap:20px; align-items:start; }
+    .toolbar { display:flex; justify-content:space-between; gap:12px; align-items:center; margin-bottom:14px; flex-wrap:wrap; }
+    .filters { display:flex; gap:10px; flex-wrap:wrap; }
+    .toolbar input,.toolbar select { border:1px solid var(--line); border-radius:8px; padding:9px 12px; background:#fff; }
+    .table-wrap { width:100%; overflow-x:auto; border-radius:8px; border:1px solid var(--line); }
+    table { width:100%; border-collapse:collapse; min-width:600px; background:#fff; }
+    th,td { padding:12px 10px; border-bottom:1px solid var(--line); text-align:left; font-size:13px; vertical-align:middle; }
+    th { color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:.04em; background:#f8fafc; }
+    .badge { display:inline-flex; align-items:center; min-height:24px; padding:0 8px; border-radius:999px; font-size:12px; font-weight:950; background:#eef4ff; color:var(--blue); white-space:nowrap; }
+    .badge.ready { background:#ecfdf3; color:#067647; }
+    .badge.late { background:#fff7ed; color:#b54708; }
+    .empty { color:var(--muted); padding:22px 8px; text-align:center; }
+    .form { display:grid; gap:12px; margin-top:12px; }
+    .form label { display:grid; gap:5px; color:#344054; font-size:12px; font-weight:950; }
+    .form input,.form select,.form textarea { width:100%; border:1px solid var(--line); border-radius:8px; padding:10px 12px; background:#fff; }
+    .form textarea { min-height:80px; resize:vertical; }
+    .row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .receipt { display:none; border-color:#b9e8d4; background:var(--soft-green); margin-top:14px; }
+    .receipt.show { display:grid; gap:10px; }
+    .receipt strong { color:var(--green-dark); }
+    .receipt p { margin:0; color:#14532d; }
+    .receipt-actions { display:flex; gap:8px; flex-wrap:wrap; }
+    .toast { display:none; position:fixed; right:18px; bottom:18px; background:#101828; color:#fff; padding:12px 14px; border-radius:8px; box-shadow:0 14px 30px rgba(16,24,40,.2); z-index:50; }
+    .modal { display:none; position:fixed; inset:0; background:rgba(16,24,40,0.65); backdrop-filter:blur(4px); place-items:center; z-index:100; padding:16px; }
+    .modal.show { display:grid; }
+    .modal-card { background:#fff; border-radius:16px; width:min(400px, 100%); padding:24px; text-align:center; box-shadow:0 20px 40px rgba(0,0,0,0.25); display:grid; gap:14px; }
+    @media (max-width:1120px) { .shell{grid-template-columns:1fr;} aside{padding:22px} .layout{grid-template-columns:1fr;} }
+    @media (max-width:560px) { main{padding:16px}.row{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr; gap:10px;} }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside>
+      <div class="brand"><span class="mark">TV</span>TiqueteVivo</div>
+      <div class="nav"><button class="active">Pedidos</button><button>Caja</button><button>Clientes</button><button>Ajustes</button></div>
+      <div class="data-box">
+        <label>Estado de datos</label>
+        <div class="data-status" id="dataStatus">Demo activa</div>
+        <button class="btn light" id="syncBtn" type="button">Actualizar pedidos</button>
+      </div>
+    </aside>
+
+    <main>
+      <div class="topbar">
+        <div><h1>Pedidos del dia</h1><div class="sub">Majesty Lavanderia</div></div>
+        <div style="display:flex; gap:10px;">
+          <button class="btn green" id="cashReportBtn" type="button">📊 Cierre de Caja Diaria</button>
+          <a class="btn light" href="index.html">Inicio</a>
+        </div>
+      </div>
+
+      <section class="stats">
+        <div class="stat"><span>Pedidos</span><strong id="statOrders">0</strong></div>
+        <div class="stat"><span>Ventas</span><strong id="statSales">$0</strong></div>
+        <div class="stat"><span>Saldos</span><strong id="statBalance">$0</strong></div>
+        <div class="stat"><span>Listos</span><strong id="statReady">0</strong></div>
+      </section>
+
+      <section class="layout">
+        <div class="panel">
+          <div class="toolbar">
+            <strong>Ordenes recientes</strong>
+            <div class="filters">
+              <input id="search" placeholder="Buscar cliente o tiquete">
+              <select id="statusFilter"><option value="">Todos</option><option value="RECEIVED">Recibido</option><option value="IN_PROGRESS">En proceso</option><option value="READY">Listo</option><option value="DELIVERED">Entregado</option></select>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Tiquete</th><th>Cliente</th><th>Detalle & Ubicación</th><th>Saldo</th><th>Estado</th><th>Acciones</th></tr></thead>
+              <tbody id="ordersBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="panel">
+          <strong>Nuevo tiquete 100% Digital</strong>
+          <form class="form" id="orderForm">
+            <label>Tipo de Servicio
+              <select id="serviceTypeSelect" name="serviceType">
+                <option value="PRENDA">B2C - Por Prendas (Lavado individual)</option>
+                <option value="KILOS">B2B - Por Kilos (Hoteles, Restaurantes, Empresas)</option>
+              </select>
+            </label>
+
+            <label>Plantilla WhatsApp Maktub
+              <select id="templateSelect" name="templateName">
+                <option value="default">🐧 Recibo Estándar + Tiquete Digital</option>
+                <option value="maktub_recogida">🚚 Recogida a Domicilio</option>
+                <option value="maktub_en_entrega">🛵 En Camino a Domicilio</option>
+                <option value="maktub_remision_b2b">🏨 Remisión B2B (Por Kilos)</option>
+                <option value="maktub_cobro">💸 Recordatorio de Cobro</option>
+              </select>
+            </label>
+
+            <label>Cliente<input name="customerName" required value="Jimy Edisson Diaz Botia" placeholder="Nombre del cliente"></label>
+            <label>WhatsApp<input name="customerPhone" required value="+573102688991" placeholder="+57 310 268 8991"></label>
+            
+            <div id="kilosBox" style="display:none; background:#ecfdf5; border:1px solid #a7f3d0; padding:12px; border-radius:8px; grid-gap:10px;">
+              <div class="row">
+                <label>Kilos (Kg)<input id="kilosInput" name="kilos" type="number" step="0.1" value="10" placeholder="Ej: 15.5"></label>
+                <label>Tarifa / Kg<input id="pricePerKgInput" name="pricePerKg" type="number" value="4500" placeholder="Ej: 4500"></label>
+              </div>
+            </div>
+
+            <label>Detalle<textarea id="itemsInput" name="itemsText" required placeholder="1 sabana">1 sabana</textarea></label>
+            
+            <div class="row">
+              <label>Ubicación / Estante<input name="rackLocation" placeholder="Ej: Estante B-04 / Perchero 12"></label>
+              <label style="flex-direction:row; align-items:center; gap:8px; margin-top:24px;">
+                <input name="isDelicate" type="checkbox" style="width:auto;"> ⚠️ Prenda Delicada
+              </label>
+            </div>
+
+            <div class="row"><label>Total<input id="totalInput" name="total" type="number" min="0" required value="25000"></label><label>Abono<input name="paid" type="number" min="0" required value="10000"></label></div>
+            <div class="row"><label>Estado<select name="status"><option value="RECEIVED">Recibido</option><option value="IN_PROGRESS">En proceso</option><option value="READY">Listo</option></select></label><label>Entrega<input name="dueDate" type="date"></label></div>
+            <button class="btn whatsapp" id="createBtn" type="submit">Crear Tiquete Digital y Abrir WhatsApp</button>
+          </form>
+          <div class="receipt" id="receiptBox" style="text-align:center;">
+            <strong id="receiptTitle">Tiquete Digital Creado 🌱</strong>
+            <p id="receiptText">Muestra este Código QR en el mostrador para que el cliente lo escanee con su cámara.</p>
+            
+            <div id="qrContainer" style="background:#fff; padding:12px; border-radius:12px; border:1px solid #a7f3d0; display:inline-block; margin:8px 0;">
+              <img id="qrImage" src="" alt="QR Tiquete Digital" style="width:160px; height:160px; display:block; margin:auto;">
+              <div style="font-size:11px; font-weight:800; color:#15803d; margin-top:6px;">📸 Escanear con la Cámara</div>
+            </div>
+
+            <div class="receipt-actions" style="justify-content:center;">
+              <a class="btn whatsapp" id="receiptWa" href="#" target="_blank" rel="noopener">Abrir WhatsApp</a>
+              <a class="btn light" id="receiptLive" href="#" target="_blank" rel="noopener">Ver Tiquete Digital 🌐</a>
+              <button class="btn light" id="copyMessage" type="button">Copiar mensaje</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const BUSINESS_SLUG = urlParams.get("slug") || "majesty";
+    const BUSINESS_NAME = "Majesty Lavanderia";
+    const BUSINESS_ADDRESS = "Calle 50 #21-15";
+    const demoOrders = [
+      { id: "demo-1", order_number: "8707", customer_name: "Richard Diaz", customer_phone: "+573001234567", items_text: "2 tenis Vans, 1 Converse blanco", total: 390000, paid: 200000, balance: 190000, status: "READY" },
+      { id: "demo-2", order_number: "8708", customer_name: "Maria Restrepo", customer_phone: "+573011112222", items_text: "Chaqueta impermeable, lavado seco", total: 85000, paid: 85000, balance: 0, status: "IN_PROGRESS" },
+      { id: "demo-3", order_number: "8709", customer_name: "Juan Gomez", customer_phone: "+573022223333", items_text: "Botas cuero, limpieza y tintura", total: 130000, paid: 60000, balance: 70000, status: "RECEIVED" }
+    ];
+    let orders = JSON.parse(localStorage.getItem("tiquete_orders") || "null") || demoOrders;
+    let lastMessage = "";
+    const money = new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 });
+    const labels = { RECEIVED: "Recibido", IN_PROGRESS: "En proceso", READY: "Listo", DELIVERED: "Entregado", CANCELLED: "Cancelado" };
+
+    function toast(message) { const node = document.getElementById("toast"); node.textContent = message; node.style.display = "block"; setTimeout(() => node.style.display = "none", 2800); }
+    function setDataStatus(message) { document.getElementById("dataStatus").textContent = message; }
+    function digitsOnly(phone) { return String(phone || "").replace(/\D/g, ""); }
+    function normalize(order) {
+      return {
+        id: order.id || "",
+        order_number: order.order_number || order.orderNumber || order.orderId,
+        customer_name: order.customer_name || order.customerName,
+        customer_phone: order.customer_phone || order.customerPhone,
+        items_text: order.items_text || order.itemsText,
+        total: Number(order.total || 0),
+        paid: Number(order.paid || 0),
+        balance: Number(order.balance ?? Math.max(0, Number(order.total || 0) - Number(order.paid || 0))),
+        status: order.status || "RECEIVED",
+        due_date: order.due_date || order.dueDate || "",
+        rack_location: order.rack_location || order.rackLocation || "",
+        is_delicate: Boolean(order.is_delicate || order.isDelicate)
+      };
+    }
+
+    function buildWhatsAppMessage(order, templateName) {
+      const o = normalize(order);
+      const template = templateName || order.templateName || "default";
+      const ticketUrl = `${window.location.origin}/tiquete.html?number=${o.order_number}`;
+      const name = o.customer_name || "Cliente";
+      const address = o.customerAddress || BUSINESS_ADDRESS;
+
+      switch (template) {
+        case "maktub_recogida":
+          return [
+            `🐧 *${BUSINESS_NAME.toUpperCase()}*`,
+            `🚚 *Confirmación de Recogida a Domicilio*`,
+            ``,
+            `Hola *${name}* 👋`,
+            `Estamos programando la recogida de tus prendas.`,
+            ``,
+            `📍 *Dirección de recogida:*`,
+            `${address}`,
+            ``,
+            `🧺 *Detalle del Servicio:*`,
+            `• ${o.items_text}`,
+            ``,
+            `⏱️ *Tiempo estimado:* 3 horas tras la recogida.`,
+            ``,
+            `🌱 *Sigue tu pedido en vivo:*`,
+            `${ticketUrl}`,
+            ``,
+            `¡En breve nuestro domiciliario estará contigo! 🛵✨`
+          ].join("\n");
+
+        case "maktub_en_entrega":
+          return [
+            `🛵 *¡TU PEDIDO VA EN CAMINO!*`,
+            `🐧 ${BUSINESS_NAME} · Tiquete #${o.order_number}`,
+            ``,
+            `Hola *${name}* 👋`,
+            `Tus prendas ya fueron lavadas, secadas y planchadas con la mejor calidad.`,
+            ``,
+            `💳 *Saldo a pagar al recibir:*`,
+            `*${money.format(o.balance)}* (Aceptamos Nequi, Daviplata o Efectivo)`,
+            ``,
+            `🌱 *Ver Recibo Digital Completo:*`,
+            `${ticketUrl}`,
+            ``,
+            `¡Gracias por confiar el cuidado de tus prendas en nosotros! ✨`
+          ].join("\n");
+
+        case "maktub_remision_b2b":
+          return [
+            `🏨 *${BUSINESS_NAME.toUpperCase()}*`,
+            `📋 *Remisión Comercial B2B #${o.order_number}*`,
+            ``,
+            `Estimado(a) *${name}* 👋`,
+            ``,
+            `🧺 *Detalle de Kilos Procesados:*`,
+            `• ${o.items_text}`,
+            ``,
+            `💳 *Resumen de Cuenta:*`,
+            `• Total Servicio: ${money.format(o.total)}`,
+            `• Saldo Pendiente: *${money.format(o.balance)}*`,
+            ``,
+            `🌱 *Ver Remisión Digital Completa:*`,
+            `${ticketUrl}`,
+            ``,
+            `Agradecemos su confianza en nuestro servicio corporativo 🐧`
+          ].join("\n");
+
+        case "maktub_cobro":
+          return [
+            `💸 *RECORDATORIO DE PAGO*`,
+            `🐧 ${BUSINESS_NAME} · Tiquete #${o.order_number}`,
+            ``,
+            `Hola *${name}* 👋`,
+            `Esperamos que te encuentres muy bien.`,
+            ``,
+            `💳 *Saldo Pendiente de tu Servicio:*`,
+            `*${money.format(o.balance)}*`,
+            ``,
+            `🏦 *Medios de Pago Disponibles:*`,
+            `• Nequi / Daviplata: 310 268 8991`,
+            `• Bancolombia Ahorros: 123-456789-01`,
+            ``,
+            `🌱 *Ver Tiquete Digital:*`,
+            `${ticketUrl}`,
+            ``,
+            `Envíanos el comprobante por este chat. ¡Muchas gracias! 🐧✨`
+          ].join("\n");
+
+        default:
+          return [
+            `🐧 *${BUSINESS_NAME.toUpperCase()}*`,
+            `📄 *Recibo Digital #${o.order_number}*`,
+            ``,
+            `Hola *${name}* 👋`,
+            `¡Gracias por confiar el cuidado de tus prendas en nosotros!`,
+            ``,
+            `🧺 *Detalle de Prendas / Servicio:*`,
+            `• ${o.items_text}`,
+            ``,
+            `💳 *Resumen del Pedido:*`,
+            `• Total Servicio: ${money.format(o.total)}`,
+            `• Abono Realizado: ${money.format(o.paid)}`,
+            `• Saldo Pendiente: *${money.format(o.balance)}*`,
+            ``,
+            `🌱 *Consulta tu Tiquete Digital 100% Cero Papel:*`,
+            `${ticketUrl}`,
+            ``,
+            `¡Nos aseguraremos de dejar tus prendas impecables! ✨`
+          ].join("\n");
+      }
+    }
+
+    function buildWaLink(order, templateName) {
+      const o = normalize(order);
+      return `https://wa.me/${digitsOnly(o.customer_phone)}?text=${encodeURIComponent(buildWhatsAppMessage(o, templateName))}`;
+    }
+
+    async function changeOrderStatus(orderId, newStatus) {
+      if (!orderId || orderId.startsWith("demo-")) {
+        const order = orders.find(o => o.id === orderId);
+        if (order) { order.status = newStatus; render(); toast("Estado actualizado localmente"); }
+        return;
+      }
+      try {
+        const res = await fetch("/api/update-order", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: orderId, status: newStatus, slug: BUSINESS_SLUG })
+        });
+        if (!res.ok) throw new Error("Error al actualizar estado");
+        const updated = await res.json();
+        const index = orders.findIndex(o => o.id === orderId);
+        if (index !== -1) orders[index] = normalize(updated);
+        localStorage.setItem("tiquete_orders", JSON.stringify(orders));
+        render();
+        toast("Estado actualizado en la nube");
+      } catch (err) {
+        toast(err.message);
+      }
+    }
+
+    function openQrModal(orderNumber) {
+      const order = orders.find(o => String(o.order_number) === String(orderNumber) || String(o.id) === String(orderNumber));
+      if (!order) return;
+      const link = buildWaLink(order, "default");
+      document.getElementById("modalQrTitle").textContent = `Tiquete Digital #${order.order_number}`;
+      document.getElementById("modalQrCust").textContent = order.customer_name;
+      document.getElementById("modalQrImg").src = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(link)}`;
+      document.getElementById("modalWaBtn").href = link;
+      document.getElementById("qrModal").classList.add("show");
+    }
+
+    function closeQrModal() {
+      document.getElementById("qrModal").classList.remove("show");
+    }
+
+    window.openQrModal = openQrModal;
+    window.closeQrModal = closeQrModal;
+
+    function render() {
+      orders = orders.map(normalize);
+      const q = document.getElementById("search").value.toLowerCase();
+      const f = document.getElementById("statusFilter").value;
+      const visible = orders.filter(o => (!f || o.status === f) && (`${o.order_number} ${o.customer_name} ${o.items_text} ${o.rack_location}`.toLowerCase().includes(q)));
+      
+      document.getElementById("ordersBody").innerHTML = visible.length ? visible.map(o => `
+        <tr>
+          <td>
+            <strong>#${o.order_number}</strong>
+            ${o.is_delicate ? '<br><span style="background:#fffbe8; color:#d97706; font-size:10px; padding:2px 6px; border-radius:4px; font-weight:800;">⚠️ Delicada</span>' : ''}
+          </td>
+          <td>${o.customer_name}<br><small>${o.customer_phone}</small></td>
+          <td>
+            ${o.items_text}
+            ${o.rack_location ? `<br><small style="color:#1e40af; font-weight:800;">📍 ${o.rack_location}</small>` : ''}
+          </td>
+          <td>${money.format(o.balance)}</td>
+          <td>
+            <select style="border:1px solid var(--line); border-radius:6px; padding:4px 8px; font-size:12px; font-weight:700;" onchange="changeOrderStatus('${o.id}', this.value)">
+              <option value="RECEIVED" ${o.status === 'RECEIVED' ? 'selected' : ''}>Recibido</option>
+              <option value="IN_PROGRESS" ${o.status === 'IN_PROGRESS' ? 'selected' : ''}>En proceso</option>
+              <option value="READY" ${o.status === 'READY' ? 'selected' : ''}>Listo</option>
+              <option value="DELIVERED" ${o.status === 'DELIVERED' ? 'selected' : ''}>Entregado</option>
+              <option value="CANCELLED" ${o.status === 'CANCELLED' ? 'selected' : ''}>Cancelado</option>
+            </select>
+          </td>
+          <td>
+            <div style="display:flex; gap:4px;">
+              <button class="btn green" onclick="openQrModal('${o.order_number}')" title="Mostrar Código QR en Mostrador">📸 QR</button>
+              <a class="btn light" href="${buildWaLink(o)}" target="_blank" rel="noopener" title="Enviar por WhatsApp">WhatsApp</a>
+              <a class="btn light" href="/tiquete.html?number=${o.order_number}" target="_blank" rel="noopener" title="Ver tiquete digital 🌐">🌐</a>
+            </div>
+          </td>
+        </tr>
+      `).join("") : `<tr><td colspan="6" class="empty">No hay pedidos con este filtro.</td></tr>`;
+
+      document.getElementById("statOrders").textContent = orders.length;
+      document.getElementById("statSales").textContent = money.format(orders.reduce((s, o) => s + o.total, 0));
+      document.getElementById("statBalance").textContent = money.format(orders.reduce((s, o) => s + o.balance, 0));
+      document.getElementById("statReady").textContent = orders.filter(o => o.status === "READY").length;
+    }
+
+    // B2B Kilos Auto-Calculation
+    const serviceSelect = document.getElementById("serviceTypeSelect");
+    const kilosBox = document.getElementById("kilosBox");
+    const kilosInput = document.getElementById("kilosInput");
+    const pricePerKgInput = document.getElementById("pricePerKgInput");
+    const itemsInput = document.getElementById("itemsInput");
+    const totalInput = document.getElementById("totalInput");
+
+    serviceSelect.addEventListener("change", () => {
+      if (serviceSelect.value === "KILOS") {
+        kilosBox.style.display = "grid";
+        document.getElementById("templateSelect").value = "maktub_remision_b2b";
+        recalcKilos();
+      } else {
+        kilosBox.style.display = "none";
+      }
+    });
+
+    function recalcKilos() {
+      if (serviceSelect.value === "KILOS") {
+        const k = parseFloat(kilosInput.value) || 0;
+        const p = parseFloat(pricePerKgInput.value) || 0;
+        const calcTotal = Math.round(k * p);
+        totalInput.value = calcTotal;
+        itemsInput.value = `Servicio B2B por Kilos: ${k} kg a ${money.format(p)}/kg`;
+      }
+    }
+
+    kilosInput.addEventListener("input", recalcKilos);
+    pricePerKgInput.addEventListener("input", recalcKilos);
+
+    async function sync() {
+      try {
+        const response = await fetch(`/api/list-orders?slug=${BUSINESS_SLUG}`);
+        if (!response.ok) throw new Error("No se pudo conectar. Seguimos en modo demo.");
+        orders = (await response.json()).map(normalize);
+        localStorage.setItem("tiquete_orders", JSON.stringify(orders));
+        setDataStatus("Guardado en la nube");
+        toast("Pedidos actualizados");
+        render();
+      } catch (error) {
+        setDataStatus("Demo activa");
+        toast(error.message);
+        render();
+      }
+    }
+
+    async function createOrder(payload) {
+      const response = await fetch("/api/create-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ error: "No se pudo guardar" }));
+        throw new Error(error.error || "No se pudo guardar");
+      }
+      return response.json();
+    }
+
+    document.getElementById("syncBtn").addEventListener("click", sync);
+    document.getElementById("search").addEventListener("input", render);
+    document.getElementById("statusFilter").addEventListener("change", render);
+    document.getElementById("copyMessage").addEventListener("click", async () => {
+      try { await navigator.clipboard.writeText(lastMessage); toast("Mensaje copiado"); } catch { toast("No se pudo copiar"); }
+    });
+
+    document.getElementById("cashReportBtn").addEventListener("click", () => {
+      const today = new Date().toLocaleDateString("es-CO");
+      const totalOrders = orders.length;
+      const totalSales = orders.reduce((sum, o) => sum + o.total, 0);
+      const totalPaidInCash = orders.reduce((sum, o) => sum + o.paid, 0);
+      const totalPendingBalance = orders.reduce((sum, o) => sum + o.balance, 0);
+      const readyOrdersCount = orders.filter(o => o.status === "READY").length;
+
+      const reportText = [
+        `📊 *CIERRE DE CAJA DIARIA — ${BUSINESS_NAME}*`,
+        `📅 Fecha: ${today}`,
+        `----------------------------------------`,
+        `📥 Total pedidos creados: ${totalOrders}`,
+        `💰 Ventas totales: ${money.format(totalSales)}`,
+        `💵 Ingresado a Caja (Abonos): ${money.format(totalPaidInCash)}`,
+        `💸 Saldos por cobrar: ${money.format(totalPendingBalance)}`,
+        `✅ Pedidos listos para entregar: ${readyOrdersCount}`,
+        `----------------------------------------`,
+        `🌱 *Operación 100% Digital y Cero Papel*`
+      ].join("\n");
+
+      const waLink = `https://wa.me/?text=${encodeURIComponent(reportText)}`;
+      window.open(waLink, "_blank", "noopener");
+      toast("Reporte de Cierre de Caja generado para WhatsApp");
+    });
+
+    document.getElementById("orderForm").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const button = document.getElementById("createBtn");
+      button.disabled = true;
+      button.textContent = "Creando Tiquete Digital...";
+      const body = Object.fromEntries(new FormData(event.currentTarget));
+      body.slug = BUSINESS_SLUG;
+      body.total = Number(body.total);
+      body.paid = Number(body.paid);
+      let order;
+      let storedInCloud = false;
+      try {
+        order = await createOrder(body);
+        storedInCloud = true;
+        setDataStatus("Guardado en la nube");
+      } catch (error) {
+        order = { ...body, id: "demo-" + Date.now(), order_number: String(Date.now()).slice(-6), balance: Math.max(0, body.total - body.paid) };
+        setDataStatus("Demo activa");
+        toast("Pedido guardado localmente. Revisa Supabase si querias guardarlo en la nube.");
+      }
+      orders.unshift(normalize(order));
+      localStorage.setItem("tiquete_orders", JSON.stringify(orders));
+      render();
+      const templateSelected = body.templateName || "default";
+      const link = buildWaLink(order, templateSelected);
+      const liveTicketUrl = `${window.location.origin}/tiquete.html?number=${normalize(order).order_number}`;
+      lastMessage = buildWhatsAppMessage(order, templateSelected);
+      
+      document.getElementById("receiptTitle").textContent = `Tiquete Digital #${normalize(order).order_number} Creado 🌱`;
+      document.getElementById("receiptText").textContent = "Muestra este Código QR en el mostrador para que el cliente lo escanee con su cámara 📸";
+      document.getElementById("receiptWa").href = link;
+      document.getElementById("receiptLive").href = liveTicketUrl;
+      
+      const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(link)}`;
+      document.getElementById("qrImage").src = qrApiUrl;
+      
+      document.getElementById("receiptBox").classList.add("show");
+      button.disabled = false;
+      button.textContent = "Crear Tiquete Digital";
+      sync();
+    });
+
+    sync();
+  </script>
+
+  <div class="modal" id="qrModal" onclick="if(event.target===this)closeQrModal()">
+    <div class="modal-card">
+      <strong id="modalQrTitle" style="font-size:18px; color:var(--ink);">Tiquete Digital #8707</strong>
+      <p style="margin:0; font-size:13px; color:var(--muted);">Cliente: <span id="modalQrCust" style="font-weight:800; color:var(--ink);">--</span></p>
+      
+      <div style="background:#f8fafc; padding:16px; border-radius:12px; border:1px solid var(--line);">
+        <img id="modalQrImg" src="" alt="Código QR Mostrador" style="width:200px; height:200px; display:block; margin:auto; border-radius:8px;">
+        <div style="font-size:12px; font-weight:800; color:#15803d; margin-top:8px;">📸 Apunta la cámara del celular para escanear</div>
+      </div>
+
+      <div style="display:flex; gap:8px; justify-content:center;">
+        <a class="btn whatsapp" id="modalWaBtn" href="#" target="_blank" rel="noopener">Abrir WhatsApp</a>
+        <button class="btn light" onclick="closeQrModal()" type="button">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

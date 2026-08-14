@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <title>TiqueteVivo | Recibo Digital</title>
+  <style>
+    :root {
+      --primary: #18a058;
+      --primary-dark: #0d7040;
+      --bg: #f4f7f6;
+      --card: #ffffff;
+      --ink: #101828;
+      --muted: #667085;
+      --line: #e4e7ec;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px 16px;
+    }
+    .ticket-card {
+      width: min(480px, 100%);
+      background: var(--card);
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      box-shadow: 0 12px 32px rgba(16, 24, 40, 0.08);
+      overflow: hidden;
+    }
+    .header {
+      background: #101828;
+      color: #ffffff;
+      padding: 24px;
+      text-align: center;
+      position: relative;
+    }
+    .header .brand-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.12);
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+    .header h1 {
+      margin: 14px 0 4px;
+      font-size: 26px;
+      font-weight: 900;
+    }
+    .header p {
+      margin: 0;
+      color: #98a2b3;
+      font-size: 14px;
+    }
+    .eco-badge {
+      background: #ecfdf3;
+      color: #027a48;
+      border: 1px solid #abefc6;
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin: 18px 20px 0;
+      font-size: 13px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .stepper {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4px;
+      padding: 20px;
+      border-bottom: 1px solid var(--line);
+    }
+    .step {
+      text-align: center;
+      font-size: 11px;
+      font-weight: 700;
+      color: #d0d5dd;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+    .step .dot {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #f2f4f7;
+      color: #98a2b3;
+      display: grid;
+      place-items: center;
+      font-size: 12px;
+    }
+    .step.active { color: var(--primary-dark); }
+    .step.active .dot { background: var(--primary); color: #fff; }
+    .step.completed .dot { background: #abefc6; color: #027a48; }
+
+    .content { padding: 24px 20px; display: grid; gap: 18px; }
+    .row { display: flex; justify-content: space-between; align-items: center; }
+    .label { color: var(--muted); font-size: 13px; font-weight: 600; }
+    .value { font-size: 15px; font-weight: 800; color: var(--ink); }
+    .divider { height: 1px; background: var(--line); margin: 4px 0; }
+
+    .items-box {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 14px;
+    }
+    .items-box strong { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+    .items-box p { margin: 0; font-size: 15px; font-weight: 700; color: #1e293b; line-height: 1.4; }
+
+    .balance-card {
+      background: #ecfdf5;
+      border: 1.5px solid #a7f3d0;
+      border-radius: 12px;
+      padding: 16px;
+      display: grid;
+      gap: 8px;
+    }
+    .balance-card.has-balance {
+      background: #fff7ed;
+      border-color: #ffedd5;
+    }
+    .balance-card .amount {
+      font-size: 28px;
+      font-weight: 900;
+      color: var(--primary-dark);
+    }
+    .balance-card.has-balance .amount {
+      color: #c2410c;
+    }
+
+    .btn-action {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: #25d366;
+      color: #042f1a;
+      text-decoration: none;
+      font-weight: 900;
+      padding: 14px;
+      border-radius: 10px;
+      font-size: 15px;
+      box-shadow: 0 4px 14px rgba(37, 211, 102, 0.25);
+    }
+
+    .footer {
+      text-align: center;
+      padding: 16px 20px 24px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .footer a { color: var(--primary); text-decoration: none; font-weight: 700; }
+  </style>
+</head>
+<body>
+
+  <div class="ticket-card" id="card">
+    <div class="header">
+      <div class="brand-badge"><span id="bizName">Maktub Laundry and Care</span> 🐧</div>
+      <h1 id="ticketNumber">Tiquete #----</h1>
+      <p id="bizPhone">+57 300 000 0000</p>
+    </div>
+
+    <div class="eco-badge">
+      🌱 Tiquete Digital 100% Ecológico — Sin Papel ni Impresiones
+    </div>
+
+    <div class="stepper" id="stepper">
+      <div class="step" id="step-RECEIVED"><div class="dot">1</div>Recibido</div>
+      <div class="step" id="step-IN_PROGRESS"><div class="dot">2</div>En Lavado</div>
+      <div class="step" id="step-READY"><div class="dot">3</div>Listo</div>
+      <div class="step" id="step-DELIVERED"><div class="dot">4</div>Entregado</div>
+    </div>
+
+    <div class="content">
+      <div class="row">
+        <span class="label">Cliente</span>
+        <span class="value" id="custName">Cargando...</span>
+      </div>
+      <div class="row">
+        <span class="label">Fecha</span>
+        <span class="value" id="orderDate">--/--/----</span>
+      </div>
+
+      <div class="items-box">
+        <strong>Detalle del servicio / prendas</strong>
+        <p id="itemsText">...</p>
+        <div id="rackBadge" style="display:none; margin-top:8px; font-size:12px; font-weight:800; color:#1e40af; background:#dbeafe; padding:4px 8px; border-radius:6px; width:fit-content;">
+          📍 Ubicación: <span id="rackText">Estante B-04</span>
+        </div>
+      </div>
+
+      <div id="delicateNotice" style="display:none; background:#fffbe8; border:1px solid #ffe58f; padding:10px 12px; border-radius:8px; font-size:12px; color:#873800; font-weight:700;">
+        ⚠️ **Prenda Delicada / Alto Valor**: Lavado con procedimiento especial. Riesgo de desgaste previo o decoloración aceptado.
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="row">
+        <span class="label">Total servicio</span>
+        <span class="value" id="totalAmount">$0</span>
+      </div>
+      <div class="row">
+        <span class="label">Abono realizado</span>
+        <span class="value" id="paidAmount">$0</span>
+      </div>
+
+      <div class="balance-card" id="balanceCard">
+        <div class="row">
+          <span class="label" style="color:inherit; font-weight:800;">Saldo Pendiente</span>
+          <span class="amount" id="balanceAmount">$0</span>
+        </div>
+      </div>
+
+      <!-- Módulo de Recaudo Digital -->
+      <div id="paymentMethodsBox" style="background:#f0fdf4; border:1px dashed #22c55e; border-radius:12px; padding:14px; display:grid; gap:8px;">
+        <strong style="color:#15803d; font-size:14px;">💳 Medios de Pago / Transferencia Directa</strong>
+        <div style="font-size:13px; color:#166534; line-height:1.5;">
+          • <strong>Nequi / Daviplata:</strong> 310 268 8991<br>
+          • <strong>Bancolombia Ahorros:</strong> 123-456789-01
+        </div>
+        <a id="payProofBtn" class="btn-action" href="#" target="_blank" rel="noopener" style="background:#15803d; color:#fff; font-size:13px; padding:10px; margin-top:4px;">
+          📲 Enviar Comprobante de Pago
+        </a>
+      </div>
+
+      <a class="btn-action" id="waBtn" href="#" target="_blank" rel="noopener">
+        💬 Contactar a la Lavandería por WhatsApp
+      </a>
+
+      <div style="font-size:11px; color:#98a2b3; background:#f8fafc; padding:10px; border-radius:8px; text-align:center; line-height:1.4;">
+        📋 <strong>Políticas del Servicio:</strong> Lavado según etiquetas. Prendas no reclamadas pasados 30 días entrarán en proceso de donación. TiqueteVivo 100% Sin Papel.
+      </div>
+    </div>
+
+    <div class="footer">
+      Impulsado por <a href="/">TiqueteVivo</a> — Recibos digitales sin papel.
+    </div>
+  </div>
+
+  <script>
+    const money = new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 });
+
+    async function loadTicket() {
+      const params = new URLSearchParams(window.location.search);
+      const orderNumber = params.get("number") || params.get("id") || "8707";
+      const slug = params.get("slug") || "majesty";
+
+      try {
+        const res = await fetch(`/api/list-orders?slug=${slug}`);
+        if (!res.ok) throw new Error();
+        const list = await res.json();
+        const order = list.find(o => String(o.order_number) === String(orderNumber) || String(o.id) === String(orderNumber)) || list[0];
+        
+        if (order) renderTicket(order);
+        else renderFallback(orderNumber);
+      } catch {
+        // Fallback local storage or demo
+        const local = JSON.parse(localStorage.getItem("tiquete_orders") || "[]");
+        const order = local.find(o => String(o.order_number) === String(orderNumber) || String(o.id) === String(orderNumber));
+        if (order) renderTicket(order);
+        else renderFallback(orderNumber);
+      }
+    }
+
+    function renderTicket(order) {
+      document.getElementById("ticketNumber").textContent = `Tiquete #${order.order_number || order.orderNumber || "0001"}`;
+      document.getElementById("custName").textContent = order.customer_name || order.customerName || "Cliente";
+      document.getElementById("itemsText").textContent = order.items_text || order.itemsText || "Servicio de lavandería";
+      document.getElementById("orderDate").textContent = new Date(order.created_at || Date.now()).toLocaleDateString("es-CO");
+      
+      const total = Number(order.total || 0);
+      const paid = Number(order.paid || 0);
+      const balance = Number(order.balance ?? Math.max(0, total - paid));
+
+      document.getElementById("totalAmount").textContent = money.format(total);
+      document.getElementById("paidAmount").textContent = money.format(paid);
+      document.getElementById("balanceAmount").textContent = money.format(balance);
+
+      const bCard = document.getElementById("balanceCard");
+      if (balance > 0) bCard.classList.add("has-balance");
+      else bCard.classList.remove("has-balance");
+
+      // Update Stepper
+      const status = order.status || "RECEIVED";
+      const steps = ["RECEIVED", "IN_PROGRESS", "READY", "DELIVERED"];
+      const currentIdx = steps.indexOf(status);
+
+      steps.forEach((st, idx) => {
+        const el = document.getElementById(`step-${st}`);
+        if (!el) return;
+        if (idx === currentIdx) {
+          el.className = "step active";
+        } else if (idx < currentIdx) {
+          el.className = "step completed";
+        } else {
+          el.className = "step";
+        }
+      });
+
+      const rackLocation = order.rack_location || order.rackLocation;
+      if (rackLocation) {
+        document.getElementById("rackBadge").style.display = "inline-block";
+        document.getElementById("rackText").textContent = rackLocation;
+      } else {
+        document.getElementById("rackBadge").style.display = "none";
+      }
+
+      if (order.is_delicate || order.isDelicate) {
+        document.getElementById("delicateNotice").style.display = "block";
+      } else {
+        document.getElementById("delicateNotice").style.display = "none";
+      }
+
+      const waPhone = String(order.customer_phone || "").replace(/\D/g, "");
+      document.getElementById("waBtn").href = `https://wa.me/${waPhone}?text=${encodeURIComponent(`Hola, consulto sobre mi tiquete #${order.order_number}`)}`;
+
+      const payProofMsg = `Hola, adjunto mi comprobante de pago para el Tiquete #${order.order_number || orderNumber} por valor de ${money.format(balance)}.`;
+      document.getElementById("payProofBtn").href = `https://wa.me/${waPhone}?text=${encodeURIComponent(payProofMsg)}`;
+    }
+
+    function renderFallback(orderNumber) {
+      document.getElementById("ticketNumber").textContent = `Tiquete #${orderNumber}`;
+      document.getElementById("custName").textContent = "Cliente Maktub";
+      document.getElementById("itemsText").textContent = "Lavado, secado y cuidado ecológico";
+      document.getElementById("totalAmount").textContent = "$35.000";
+      document.getElementById("paidAmount").textContent = "$15.000";
+      document.getElementById("balanceAmount").textContent = "$20.000";
+      document.getElementById("step-RECEIVED").className = "step completed";
+      document.getElementById("step-IN_PROGRESS").className = "step active";
+    }
+
+    loadTicket();
+  </script>
+</body>
+</html>
