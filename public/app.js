@@ -527,6 +527,9 @@ function render() {
   const statusLabels = getStatusLabels();
   const visible = orders.filter(o => (!f || o.status === f) && (`${o.order_number} ${o.customer_name} ${o.items_text} ${o.custom_fields?.rack_location || ""}`.toLowerCase().includes(q)));
 
+  // Mobile cards: delegate to renderOrderCards() defined in app.html
+  if (typeof renderOrderCards === "function") renderOrderCards();
+
   // Build status select options HTML from config
   const statusOptionsHtml = (businessConfig.status_flow_config || []).map(entry =>
     `<option value="${entry.status_key}">\${o.status === '${entry.status_key}' ? 'selected' : ''}>${entry.display_label}</option>`
@@ -979,7 +982,9 @@ document.getElementById("orderForm").addEventListener("submit", async (event) =>
 
   document.getElementById("receiptBox").classList.add("show");
   button.disabled = false;
-  button.textContent = "Crear Tiquete Digital y Abrir WhatsApp";
+  button.textContent = "✅ Crear Tiquete y Abrir WhatsApp";
+  // Scroll receipt into view (works both in drawer and desktop panel)
+  document.getElementById("receiptBox").scrollIntoView({ behavior: "smooth", block: "nearest" });
   sync();
 });
 
