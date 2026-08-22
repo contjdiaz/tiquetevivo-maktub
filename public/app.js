@@ -572,10 +572,23 @@ function render() {
 
   // Update stats — use the first "ready-like" status from flow (typically 3rd step or status with "READY" in key)
   const readyStatusKey = findReadyStatus();
-  document.getElementById("statOrders").textContent = orders.length;
-  document.getElementById("statSales").textContent = money.format(orders.reduce((s, o) => s + o.total, 0));
-  document.getElementById("statBalance").textContent = money.format(orders.reduce((s, o) => s + o.balance, 0));
-  document.getElementById("statReady").textContent = orders.filter(o => o.status === readyStatusKey).length;
+  const totalOrders = orders.length;
+  const totalSales = orders.reduce((s, o) => s + o.total, 0);
+  const totalBalance = orders.reduce((s, o) => s + o.balance, 0);
+  const readyCount = orders.filter(o => o.status === readyStatusKey).length;
+
+  // Use animated counters if available
+  if (typeof AnimatedCounter !== 'undefined') {
+    AnimatedCounter.animateCount(document.getElementById("statOrders"), totalOrders);
+    AnimatedCounter.animateMoney(document.getElementById("statSales"), totalSales);
+    AnimatedCounter.animateMoney(document.getElementById("statBalance"), totalBalance);
+    AnimatedCounter.animateCount(document.getElementById("statReady"), readyCount);
+  } else {
+    document.getElementById("statOrders").textContent = totalOrders;
+    document.getElementById("statSales").textContent = money.format(totalSales);
+    document.getElementById("statBalance").textContent = money.format(totalBalance);
+    document.getElementById("statReady").textContent = readyCount;
+  }
 }
 
 /**
@@ -959,6 +972,11 @@ document.getElementById("orderForm").addEventListener("submit", async (event) =>
   localStorage.setItem("tiquete_orders", JSON.stringify(orders));
   render();
 
+  // Celebrate first order of the day with confetti
+  if (typeof Confetti !== 'undefined') {
+    Confetti.celebrateFirstOrder(orders.length);
+  }
+
   const templateSelected = body.templateName || "default";
   const normalizedOrder = normalize(order);
   const waLink = buildWaLink(order, templateSelected);
@@ -1040,9 +1058,56 @@ async function loadBusinessSelector() {
  * Requirements: 10.1
  */
 async function init() {
+  // Show skeleton loaders while data loads
+  if (typeof SkeletonLoader !== 'undefined') {
+    SkeletonLoader.showTableSkeleton(document.getElementById('ordersBody'), 5, 6);
+    SkeletonLoader.showStatsSkeleton(['statOrders', 'statSales', 'statBalance', 'statReady']);
+  }
+
   await loadBusinessSelector();
   await fetchBusinessConfig();
-  sync();
+
+  // Apply vertical theming based on business config
+  if (typeof VerticalTheming !== 'undefined' && businessConfig.vertical_name) {
+    // Try to match vertical name to slug
+    const verticalSlug = guessVerticalSlug(businessConfig.vertical_name);
+    if (verticalSlug) VerticalTheming.applyTheme(verticalSlug);
+  }
+
+  await sync();
+
+  // Start onboarding tour for first-time users (after data loads)
+  if (typeof Onboarding !== 'undefined') {
+    setTimeout(function() { Onboarding.start(); }, 1500);
+  }
+
+  // Register service worker for PWA
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js').catch(function() {});
+  }
+}
+
+/**
+ * Guess vertical slug from vertical name for theming.
+ */
+function guessVerticalSlug(verticalName) {
+  if (!verticalName) return null;
+  const map = {
+    'lavandería': 'laundry', 'lavanderia': 'laundry',
+    'parqueadero': 'parking',
+    'calzado': 'shoe-repair', 'reparación de calzado': 'shoe-repair',
+    'mecánica': 'mechanic', 'taller mecánico': 'mechanic',
+    'pastelería': 'bakery', 'pasteleria': 'bakery',
+    'sastrería': 'tailor', 'sastreria': 'tailor',
+    'mascotas': 'pet-daycare', 'guardería de mascotas': 'pet-daycare',
+    'mensajería': 'courier', 'mensajeria': 'courier',
+    'impresión': 'print-center', 'centro de impresión': 'print-center',
+    'belleza': 'salon', 'salón de belleza': 'salon',
+    'casilleros': 'gym-locker',
+    'vivero': 'nursery'
+  };
+  const lower = verticalName.toLowerCase();
+  return map[lower] || null;
 }
 
 init();
