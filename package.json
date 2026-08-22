@@ -6,12 +6,15 @@
   "scripts": {
     "dev": "netlify dev",
     "serve": "netlify dev --offline",
-    "check": "node --check netlify/functions/create-order.js && node --check netlify/functions/list-orders.js && node --check netlify/functions/save-business.js && node --check netlify/functions/whatsapp-sender.js && node --check netlify/functions/save-lead.js && node --check netlify/functions/update-order.js"
+    "test": "vitest --run",
+    "check": "node --check netlify/functions/create-order.js && node --check netlify/functions/list-orders.js && node --check netlify/functions/save-business.js && node --check netlify/functions/whatsapp-sender.js && node --check netlify/functions/save-lead.js && node --check netlify/functions/update-order.js && node --check netlify/functions/delete-order.js && node --check netlify/functions/manage-business.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.4"
   },
   "devDependencies": {
-    "netlify-cli": "^17.36.4"
+    "fast-check": "^4.9.0",
+    "netlify-cli": "^17.36.4",
+    "vitest": "^4.1.11"
   }
 }

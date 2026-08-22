@@ -1,4 +1,10 @@
-import { json, parseBody } from "./_utils.js";
+import { json, parseBody, supabaseAdmin } from "./_utils.js";
+import { sendWhatsAppMessage, buildOrderMessage, buildOrderMessageFromTemplate, buildFallbackLink, logWhatsAppMessage } from "./_whatsapp.js";
+import { getBusinessConfig } from "./_vertical-config.js";
+import { selectTemplate, renderTemplate } from "./_template-engine.js";
+
+// Re-export for backward compatibility
+export { buildOrderMessage };
 
 export const handler = async (event) => {
   if (event.httpMethod === "OPTIONS") return json(200, {});
@@ -7,154 +13,107 @@ export const handler = async (event) => {
   try {
     const body = parseBody(event);
     const to = body.to || body.customerPhone;
-    const text = body.text || buildOrderMessage(body);
-    if (!to || !text) return json(400, { error: "to and text are required" });
 
-    const token = process.env.WHATSAPP_TOKEN;
-    const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
-    if (!token || !phoneNumberId) return json(200, { dryRun: true, to, text });
+    if (!to) {
+      return json(400, { error: "to (recipient phone) is required" });
+    }
 
-    const response = await fetch(`https://graph.facebook.com/v20.0/${phoneNumberId}/messages`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        messaging_product: "whatsapp",
-        to,
-        type: "text",
-        text: { preview_url: false, body: text }
-      })
+    let text = body.text;
+
+    // If no explicit text provided, use Template Engine to compose message
+    if (!text) {
+      try {
+        const businessId = body.business_id || body.businessId;
+
+        if (businessId) {
+          // Vertical-aware message composition via Template Engine
+          const supabase = supabaseAdmin();
+          const businessConfig = await getBusinessConfig(supabase, businessId);
+
+          const triggerEvent = body.triggerEvent || body.trigger_event || "order_created";
+          const verticalTemplates = businessConfig.vertical?.whatsapp_templates_default || null;
+          const businessTemplates = businessConfig.whatsapp_templates_config || null;
+
+          const template = selectTemplate(triggerEvent, businessTemplates, verticalTemplates);
+
+          // Determine status label
+          const statusFlow = businessConfig.status_flow_config || [];
+          const status = body.status || "";
+          const statusEntry = statusFlow.find(
+            entry => entry.status_key && entry.status_key.toUpperCase() === status.toUpperCase()
+          );
+          const statusLabel = statusEntry ? statusEntry.display_label : status;
+
+          text = renderTemplate(template, {
+            customer_name: body.customerName || body.customer_name || "",
+            order_number: body.orderNumber || body.order_number || "",
+            items_text: body.itemsText || body.items_text || "",
+            total: body.total != null ? Number(body.total) : 0,
+            balance: Number(body.balance ?? Math.max(0, Number(body.total || 0) - Number(body.paid || 0))),
+            status_label: statusLabel,
+            custom_fields: body.custom_fields || body.customFields || {}
+          }, {
+            name: businessConfig.name || body.businessName || body.business_name || ""
+          });
+        } else {
+          // Fallback: use legacy buildOrderMessage when no business context is available
+          text = buildOrderMessage(body);
+        }
+      } catch (templateError) {
+        // Template Engine errors should not block message sending —
+        // fall back to legacy message building
+        console.error("[whatsapp-sender] Template Engine error, using fallback:", templateError.message);
+        text = buildOrderMessage(body);
+      }
+    }
+
+    if (!text) {
+      return json(400, { error: "Could not compose message. Provide 'text' or order data." });
+    }
+
+    const result = await sendWhatsAppMessage({ to, text });
+
+    // Log the message attempt if business context is available
+    try {
+      const businessId = body.business_id || body.businessId;
+      const orderId = body.orderId || body.order_id;
+      if (businessId) {
+        const supabase = supabaseAdmin();
+        const logStatus = result.success ? "SENT" : result.dryRun ? "DRY_RUN" : "FAILED";
+        await logWhatsAppMessage(supabase, {
+          orderId: orderId || null,
+          businessId,
+          phone: to,
+          templateName: body.triggerEvent || body.trigger_event || null,
+          messageBody: text,
+          metaMessageId: result.messageId || null,
+          status: logStatus,
+          errorMessage: result.error || null
+        });
+      }
+    } catch (logError) {
+      // Logging errors should never block the response
+      console.error("[whatsapp-sender] Failed to log message:", logError.message);
+    }
+
+    // Dry-run mode: return the same shape as before (200 with dryRun flag)
+    if (result.dryRun) {
+      return json(200, { dryRun: true, to, text, fallbackLink: result.fallbackLink || buildFallbackLink(to, text) });
+    }
+
+    // Successful send: return the raw Meta API response
+    if (result.success) {
+      return json(200, result.raw);
+    }
+
+    // API error: return 502 with error details and fallback link
+    return json(502, {
+      error: result.error,
+      fallbackLink: result.fallbackLink || buildFallbackLink(to, text)
     });
-
-    const result = await response.json();
-    return json(response.ok ? 200 : 502, result);
   } catch (error) {
+    // Top-level catch ensures no unhandled errors crash the function
+    console.error("[whatsapp-sender] Unexpected error:", error.message);
     return json(500, { error: error.message });
   }
 };
-
-export function buildOrderMessage(order) {
-  const balance = Number(order.balance ?? Math.max(0, Number(order.total || 0) - Number(order.paid || 0)));
-  const money = new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 });
-  const number = order.order_number || order.orderNumber || "nuevo";
-  const name = order.customer_name || order.customerName || "Cliente";
-  const address = order.address || order.customerAddress || "en tu dirección";
-  const items = order.items_text || order.itemsText || "Prendas varias";
-  const kilos = order.kilos || order.weightKg || 0;
-  const pricePerKg = order.price_per_kg || order.pricePerKg || 0;
-  const total = Number(order.total || 0);
-  const paid = Number(order.paid || 0);
-  const nextPickup = order.next_pickup || order.nextPickup || "por confirmar";
-  const bizName = order.business_name || order.businessName || "Maktub Laundry and Care";
-  const ticketUrl = `https://tiquetevivo.netlify.app/tiquete.html?number=${number}`;
-  const template = order.templateName || order.template || "default";
-
-  switch (template) {
-    case "maktub_recogida":
-      return [
-        `🐧 *${bizName.toUpperCase()}*`,
-        `🚚 *Confirmación de Recogida a Domicilio*`,
-        ``,
-        `Hola *${name}* 👋`,
-        `Estamos programando la recogida de tus prendas.`,
-        ``,
-        `📍 *Dirección de recogida:*`,
-        `${address}`,
-        ``,
-        `🧺 *Detalle del Servicio:*`,
-        `• ${items}`,
-        ``,
-        `⏱️ *Tiempo estimado:* 3 horas tras la recogida.`,
-        ``,
-        `🌱 *Sigue tu pedido en vivo:*`,
-        `${ticketUrl}`,
-        ``,
-        `¡En breve nuestro domiciliario estará contigo! 🛵✨`
-      ].join("\n");
-
-    case "maktub_en_entrega":
-      return [
-        `🛵 *¡TU PEDIDO VA EN CAMINO!*`,
-        `🐧 ${bizName} · Tiquete #${number}`,
-        ``,
-        `Hola *${name}* 👋`,
-        `Tus prendas ya fueron lavadas, secadas y planchadas con la mejor calidad.`,
-        ``,
-        `💳 *Saldo a pagar al recibir:*`,
-        `*${money.format(balance)}* (Aceptamos Nequi, Daviplata o Efectivo)`,
-        ``,
-        `🌱 *Ver Recibo Digital Completo:*`,
-        `${ticketUrl}`,
-        ``,
-        `¡Gracias por confiar el cuidado de tus prendas en nosotros! ✨`
-      ].join("\n");
-
-    case "maktub_remision_b2b":
-      return [
-        `🏨 *${bizName.toUpperCase()}*`,
-        `📋 *Remisión Comercial B2B #${number}*`,
-        ``,
-        `Estimado(a) *${name}* 👋`,
-        ``,
-        `🧺 *Detalle de Kilos Procesados:*`,
-        `• Kilos Recibidos: ${kilos > 0 ? kilos + ' Kg' : items}`,
-        pricePerKg > 0 ? `• Tarifa por Kilo: ${money.format(pricePerKg)}/kg` : '',
-        ``,
-        `💳 *Resumen de Cuenta:*`,
-        `• Total Servicio: ${money.format(total)}`,
-        `• Saldo Pendiente: *${money.format(balance)}*`,
-        ``,
-        `📅 *Próxima Recogida Programada:* ${nextPickup}`,
-        ``,
-        `🌱 *Ver Remisión Digital Completa:*`,
-        `${ticketUrl}`,
-        ``,
-        `Agradecemos su confianza en nuestro servicio corporativo 🐧`
-      ].filter(line => line !== undefined).join("\n");
-
-    case "maktub_cobro":
-      return [
-        `💸 *RECORDATORIO DE PAGO*`,
-        `🐧 ${bizName} · Tiquete #${number}`,
-        ``,
-        `Hola *${name}* 👋`,
-        `Esperamos que te encuentres muy bien.`,
-        ``,
-        `💳 *Saldo Pendiente de tu Servicio:*`,
-        `*${money.format(balance)}*`,
-        ``,
-        `🏦 *Medios de Pago Disponibles:*`,
-        `• Nequi / Daviplata: 310 268 8991`,
-        `• Bancolombia Ahorros: 123-456789-01`,
-        ``,
-        `🌱 *Ver Tiquete Digital:*`,
-        `${ticketUrl}`,
-        ``,
-        `Envíanos el comprobante por este chat. ¡Muchas gracias! 🐧✨`
-      ].join("\n");
-
-    default:
-      return [
-        `🐧 *${bizName.toUpperCase()}*`,
-        `📄 *Recibo Digital #${number}*`,
-        ``,
-        `Hola *${name}* 👋`,
-        `¡Gracias por confiar el cuidado de tus prendas en nosotros!`,
-        ``,
-        `🧺 *Detalle de Prendas / Servicio:*`,
-        `• ${items}`,
-        ``,
-        `💳 *Resumen del Pedido:*`,
-        `• Total Servicio: ${money.format(total)}`,
-        `• Abono Realizado: ${money.format(paid)}`,
-        `• Saldo Pendiente: *${money.format(balance)}*`,
-        ``,
-        `🌱 *Consulta tu Tiquete Digital 100% Cero Papel:*`,
-        `${ticketUrl}`,
-        ``,
-        `¡Nos aseguraremos de dejar tus prendas impecables! ✨`
-      ].join("\n");
-  }
-}

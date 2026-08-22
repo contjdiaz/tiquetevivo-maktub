@@ -8,6 +8,15 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
   <title>TiqueteVivo | Recibo Digital</title>
+  <!-- Open Graph meta tags for rich link previews -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="TiqueteVivo | Tu Recibo Digital 🌱">
+  <meta property="og:description" content="Consulta el estado de tu pedido, saldo pendiente y contacta al negocio. 100% digital, cero papel.">
+  <meta property="og:image" content="/og-tiquete.svg">
+  <meta property="og:site_name" content="TiqueteVivo">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="TiqueteVivo | Tu Recibo Digital 🌱">
+  <meta name="twitter:description" content="Consulta el estado de tu pedido, saldo pendiente y contacta al negocio. 100% digital, cero papel.">
   <style>
     :root {
       --primary: #18a058;
@@ -169,9 +178,92 @@
       font-size: 12px;
     }
     .footer a { color: var(--primary); text-decoration: none; font-weight: 700; }
+
+    /* Offline indicator */
+    .offline-bar {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: #fbbf24;
+      color: #78350f;
+      font-size: 12px;
+      font-weight: 700;
+      text-align: center;
+      padding: 6px 12px;
+      z-index: 1000;
+    }
+    .offline-bar.visible {
+      display: block;
+    }
+
+    /* Ready for pickup notification banner */
+    .ready-banner {
+      display: none;
+      background: #d1fae5;
+      border: 1.5px solid #34d399;
+      border-radius: 10px;
+      padding: 12px 16px;
+      text-align: center;
+      font-size: 14px;
+      font-weight: 800;
+      color: #065f46;
+      animation: pulseReady 2s ease-in-out infinite;
+    }
+    .ready-banner.visible {
+      display: block;
+    }
+    @keyframes pulseReady {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.02); }
+    }
+
+    /* QR Tab styles */
+    .qr-tabs {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+      gap: 6px;
+      margin-top: 4px;
+    }
+    .qr-tab-btn {
+      border: 1.5px solid #d1d5db;
+      background: #fff;
+      color: #374151;
+      border-radius: 8px;
+      padding: 10px 6px;
+      font-size: 11px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: all .2s;
+      text-align: center;
+    }
+    .qr-tab-btn.active-track {
+      border-color: #3b82f6;
+      background: #eff6ff;
+      color: #1e40af;
+    }
+    .qr-tab-btn.active-pickup {
+      border-color: #10b981;
+      background: #ecfdf5;
+      color: #065f46;
+    }
+    .qr-tab-btn.active-pay {
+      border-color: #f59e0b;
+      background: #fffbeb;
+      color: #92400e;
+    }
+    .qr-tab-btn.active-review {
+      border-color: #8b5cf6;
+      background: #f5f3ff;
+      color: #6b21a8;
+    }
   </style>
 </head>
 <body>
+
+  <!-- Offline indicator bar -->
+  <div class="offline-bar" id="offlineBar">⚠️ Sin conexión — reintentando...</div>
 
   <div class="ticket-card" id="card">
     <div class="header">
@@ -185,10 +277,7 @@
     </div>
 
     <div class="stepper" id="stepper">
-      <div class="step" id="step-RECEIVED"><div class="dot">1</div>Recibido</div>
-      <div class="step" id="step-IN_PROGRESS"><div class="dot">2</div>En Lavado</div>
-      <div class="step" id="step-READY"><div class="dot">3</div>Listo</div>
-      <div class="step" id="step-DELIVERED"><div class="dot">4</div>Entregado</div>
+      <!-- Status steps rendered dynamically from business status_flow_config -->
     </div>
 
     <div class="content">
@@ -202,7 +291,7 @@
       </div>
 
       <div class="items-box">
-        <strong>Detalle del servicio / prendas</strong>
+        <strong>Detalle del servicio</strong>
         <p id="itemsText">...</p>
         <div id="rackBadge" style="display:none; margin-top:8px; font-size:12px; font-weight:800; color:#1e40af; background:#dbeafe; padding:4px 8px; border-radius:6px; width:fit-content;">
           📍 Ubicación: <span id="rackText">Estante B-04</span>
@@ -211,6 +300,12 @@
 
       <div id="delicateNotice" style="display:none; background:#fffbe8; border:1px solid #ffe58f; padding:10px 12px; border-radius:8px; font-size:12px; color:#873800; font-weight:700;">
         ⚠️ **Prenda Delicada / Alto Valor**: Lavado con procedimiento especial. Riesgo de desgaste previo o decoloración aceptado.
+      </div>
+
+      <!-- Dynamic custom fields section (rendered from business config) -->
+      <div id="customFieldsBox" class="items-box" style="display:none;">
+        <strong>Información adicional</strong>
+        <div id="customFieldsList"></div>
       </div>
 
       <div class="divider"></div>
@@ -244,11 +339,51 @@
       </div>
 
       <a class="btn-action" id="waBtn" href="#" target="_blank" rel="noopener">
-        💬 Contactar a la Lavandería por WhatsApp
+        💬 Contactar por WhatsApp
       </a>
 
+      <!-- Ready for Pickup notification banner -->
+      <div class="ready-banner" id="readyBanner">
+        🎉 ¡Tu pedido está LISTO para recoger! Muestra el QR en el mostrador.
+      </div>
+
+      <!-- QR Inteligente: Dynamic QR Section -->
+      <div id="qrSection" style="background:linear-gradient(135deg, #f0fdf4 0%, #ecfeff 100%); border:1.5px solid #a7f3d0; border-radius:14px; padding:20px; display:grid; gap:14px; text-align:center;">
+        <div style="display:flex; align-items:center; justify-content:center; gap:8px;">
+          <span style="font-size:20px;">📱</span>
+          <strong style="color:#065f46; font-size:15px;">Tu Tiquete Digital Inteligente</strong>
+        </div>
+        
+        <!-- QR Code Container -->
+        <div id="ticketQrBox" style="background:#fff; padding:16px; border-radius:12px; border:1px solid #d1fae5; display:inline-block; margin:0 auto;">
+          <div id="ticketQrCode" style="display:flex; justify-content:center; min-height:160px; align-items:center;"></div>
+        </div>
+
+        <!-- QR Mode Tabs (4-mode tab bar) -->
+        <div class="qr-tabs" id="qrTabsContainer">
+          <button class="qr-tab-btn" id="qrTabTrack" data-mode="track">📍 Rastrear</button>
+          <button class="qr-tab-btn" id="qrTabPickup" data-mode="pickup">🏪 Recoger</button>
+          <button class="qr-tab-btn" id="qrTabPay" data-mode="pay">💳 Pagar</button>
+          <button class="qr-tab-btn" id="qrTabReview" data-mode="review">⭐ Reseña</button>
+        </div>
+
+        <!-- Share & Save Buttons -->
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+          <button onclick="shareTicket()" style="border:1px solid #d1d5db; background:#fff; color:#374151; border-radius:8px; padding:10px; font-size:12px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px;">
+            📤 Compartir
+          </button>
+          <button onclick="saveToHome()" style="border:1px solid #d1d5db; background:#fff; color:#374151; border-radius:8px; padding:10px; font-size:12px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px;">
+            ⭐ Guardar
+          </button>
+        </div>
+
+        <div style="font-size:10px; color:#6b7280; line-height:1.3;">
+          Este QR es único para tu pedido. Se actualiza en tiempo real con el estado y saldo de tu servicio.
+        </div>
+      </div>
+
       <div style="font-size:11px; color:#98a2b3; background:#f8fafc; padding:10px; border-radius:8px; text-align:center; line-height:1.4;">
-        📋 <strong>Políticas del Servicio:</strong> Lavado según etiquetas. Prendas no reclamadas pasados 30 días entrarán en proceso de donación. TiqueteVivo 100% Sin Papel.
+        📋 <strong>Políticas del Servicio:</strong> Artículos no reclamados pasados 30 días podrán ser descartados según la política del negocio. TiqueteVivo 100% Sin Papel.
       </div>
     </div>
 
@@ -257,52 +392,349 @@
     </div>
   </div>
 
+  <!-- QR library -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <!-- New modular system -->
+  <script src="/js/qr-payload.js"></script>
+  <script src="/js/qr-mode-selector.js"></script>
+  <script src="/js/qr-renderer.js"></script>
+  <script src="/js/status-poller.js"></script>
+
   <script>
     const money = new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 });
+    let currentOrder = null;
+    let currentQrMode = "track";
+    let currentStatus = null;
+    let poller = null;
+    let businessConfig = null; // Stores the vertical config (status_flow_config, emoji, etc.)
 
+    /**
+     * Default status flow fallback (laundry) used when no business config is available.
+     */
+    const DEFAULT_STATUS_FLOW = [
+      { status_key: "RECEIVED", display_label: "Recibido" },
+      { status_key: "IN_PROGRESS", display_label: "En Proceso" },
+      { status_key: "READY", display_label: "Listo" },
+      { status_key: "DELIVERED", display_label: "Entregado" }
+    ];
+
+    /**
+     * Render the status stepper dynamically from the business status_flow_config.
+     * @param {Array} statusFlow - Array of { status_key, display_label }
+     */
+    function renderStepper(statusFlow) {
+      const stepper = document.getElementById("stepper");
+      stepper.innerHTML = "";
+      // Update grid columns to match the number of steps
+      stepper.style.gridTemplateColumns = `repeat(${statusFlow.length}, 1fr)`;
+
+      statusFlow.forEach((step, idx) => {
+        const div = document.createElement("div");
+        div.className = "step";
+        div.id = `step-${step.status_key}`;
+        div.innerHTML = `<div class="dot">${idx + 1}</div>${step.display_label}`;
+        stepper.appendChild(div);
+      });
+    }
+
+    /**
+     * Load ticket data from API or localStorage fallback.
+     * Fetches business config (vertical status flow, emoji) alongside order data.
+     * After loading, initializes the status poller and renders the dynamic QR.
+     */
     async function loadTicket() {
       const params = new URLSearchParams(window.location.search);
       const orderNumber = params.get("number") || params.get("id") || "8707";
       const slug = params.get("slug") || "majesty";
 
       try {
-        const res = await fetch(`/api/list-orders?slug=${slug}`);
+        // Fetch orders with business config included (status_flow_config, vertical_emoji)
+        const res = await fetch(`/api/list-orders?slug=${slug}&include_business=1`);
         if (!res.ok) throw new Error();
-        const list = await res.json();
+        const response = await res.json();
+
+        // Handle both response formats: enriched { orders, business } or legacy array
+        let list, bizData;
+        if (response && response.orders && Array.isArray(response.orders)) {
+          list = response.orders;
+          bizData = response.business || null;
+        } else if (Array.isArray(response)) {
+          list = response;
+          bizData = null;
+        } else {
+          list = [];
+          bizData = null;
+        }
+
+        // Store business config for stepper and emoji rendering
+        if (bizData) {
+          businessConfig = bizData;
+        }
+
+        // Render the stepper from business status_flow_config or fallback
+        const statusFlow = (businessConfig && businessConfig.status_flow_config && businessConfig.status_flow_config.length > 0)
+          ? businessConfig.status_flow_config
+          : DEFAULT_STATUS_FLOW;
+        renderStepper(statusFlow);
+
+        // Display vertical emoji in business header
+        if (businessConfig && businessConfig.vertical_emoji) {
+          document.querySelector(".header .brand-badge").innerHTML =
+            `<span id="bizName">${businessConfig.name || "Negocio"}</span> ${businessConfig.vertical_emoji}`;
+        } else if (businessConfig && businessConfig.name) {
+          document.getElementById("bizName").textContent = businessConfig.name;
+        }
+
         const order = list.find(o => String(o.order_number) === String(orderNumber) || String(o.id) === String(orderNumber)) || list[0];
         
-        if (order) renderTicket(order);
-        else renderFallback(orderNumber);
+        if (order) {
+          currentOrder = order;
+          currentOrder.slug = currentOrder.slug || slug;
+          currentStatus = order.status || "RECEIVED";
+          renderTicket(order);
+          initDynamicQr(order);
+          initStatusPoller(orderNumber, slug);
+        } else {
+          renderFallback(orderNumber);
+        }
       } catch {
-        // Fallback local storage or demo
+        // Fallback: try legacy endpoint format or localStorage
+        try {
+          const res = await fetch(`/api/list-orders?slug=${slug}`);
+          if (res.ok) {
+            const list = await res.json();
+            renderStepper(DEFAULT_STATUS_FLOW);
+            const order = list.find(o => String(o.order_number) === String(orderNumber) || String(o.id) === String(orderNumber)) || list[0];
+            if (order) {
+              currentOrder = order;
+              currentOrder.slug = currentOrder.slug || slug;
+              currentStatus = order.status || "RECEIVED";
+              renderTicket(order);
+              initDynamicQr(order);
+              initStatusPoller(orderNumber, slug);
+              return;
+            }
+          }
+        } catch { /* ignore */ }
+
         const local = JSON.parse(localStorage.getItem("tiquete_orders") || "[]");
         const order = local.find(o => String(o.order_number) === String(orderNumber) || String(o.id) === String(orderNumber));
-        if (order) renderTicket(order);
-        else renderFallback(orderNumber);
+        renderStepper(DEFAULT_STATUS_FLOW);
+        if (order) {
+          currentOrder = order;
+          currentOrder.slug = currentOrder.slug || slug;
+          currentStatus = order.status || "RECEIVED";
+          renderTicket(order);
+          initDynamicQr(order);
+          initStatusPoller(orderNumber, slug);
+        } else {
+          renderFallback(orderNumber);
+        }
       }
     }
 
-    function renderTicket(order) {
-      document.getElementById("ticketNumber").textContent = `Tiquete #${order.order_number || order.orderNumber || "0001"}`;
-      document.getElementById("custName").textContent = order.customer_name || order.customerName || "Cliente";
-      document.getElementById("itemsText").textContent = order.items_text || order.itemsText || "Servicio de lavandería";
-      document.getElementById("orderDate").textContent = new Date(order.created_at || Date.now()).toLocaleDateString("es-CO");
-      
-      const total = Number(order.total || 0);
-      const paid = Number(order.paid || 0);
-      const balance = Number(order.balance ?? Math.max(0, total - paid));
+    /**
+     * Check if a status represents a "ready for pickup" state.
+     * In the dynamic flow, this is typically the second-to-last status
+     * (before the final delivery/completion step), or any status with "READY" in its key.
+     */
+    function isReadyStatus(status) {
+      if (!status) return false;
+      // Explicit match for common ready-like keys
+      if (status.toUpperCase().indexOf("READY") !== -1) return true;
+      if (status.toUpperCase().indexOf("LISTO") !== -1) return true;
+      // Check if it's the second-to-last step in the flow
+      const statusFlow = (businessConfig && businessConfig.status_flow_config && businessConfig.status_flow_config.length > 0)
+        ? businessConfig.status_flow_config
+        : DEFAULT_STATUS_FLOW;
+      if (statusFlow.length >= 3) {
+        const readyIdx = statusFlow.length - 2; // Second-to-last
+        if (statusFlow[readyIdx].status_key === status) return true;
+      }
+      return false;
+    }
 
-      document.getElementById("totalAmount").textContent = money.format(total);
-      document.getElementById("paidAmount").textContent = money.format(paid);
-      document.getElementById("balanceAmount").textContent = money.format(balance);
-
-      const bCard = document.getElementById("balanceCard");
-      if (balance > 0) bCard.classList.add("has-balance");
-      else bCard.classList.remove("has-balance");
-
-      // Update Stepper
+    /**
+     * Initialize the dynamic QR system: select mode, render tabs, render QR.
+     */
+    function initDynamicQr(order) {
       const status = order.status || "RECEIVED";
-      const steps = ["RECEIVED", "IN_PROGRESS", "READY", "DELIVERED"];
+      const balance = getBalance(order);
+
+      // Determine default mode and available modes
+      currentQrMode = QrModeSelector.selectDefaultMode(status, balance);
+      updateQrTabs(status, balance);
+      renderDynamicQr(order, currentQrMode);
+
+      // Show ready banner if status is a "ready" type status
+      if (isReadyStatus(status)) {
+        showReadyBanner();
+      }
+    }
+
+    /**
+     * Initialize the status poller for real-time updates.
+     */
+    function initStatusPoller(orderNumber, slug) {
+      if (poller) poller.stop();
+
+      poller = StatusPoller.createStatusPoller({
+        orderNumber: orderNumber,
+        slug: slug,
+        onUpdate: onOrderUpdate,
+        onOffline: function () {
+          document.getElementById("offlineBar").classList.add("visible");
+        },
+        onOnline: function () {
+          document.getElementById("offlineBar").classList.remove("visible");
+        }
+      });
+
+      poller.start();
+    }
+
+    /**
+     * Handler called by the status poller when order data changes.
+     * Updates stepper, balance, QR mode, and notification banner.
+     */
+    function onOrderUpdate(data) {
+      if (!currentOrder) return;
+
+      var oldStatus = currentStatus;
+      var newStatus = data.status || oldStatus;
+
+      // Update order data with fresh values from poller
+      currentOrder.status = newStatus;
+      if (typeof data.balance === "number") currentOrder.balance = data.balance;
+      if (typeof data.paid === "number") currentOrder.paid = data.paid;
+      if (data.updated_at) currentOrder.updated_at = data.updated_at;
+
+      currentStatus = newStatus;
+
+      // 1. Update the status stepper
+      updateStepper(newStatus);
+
+      // 2. Update balance/paid amounts display
+      updateBalanceDisplay(currentOrder);
+
+      // 3. Reset user override on lifecycle phase change
+      QrModeSelector.resetOverrideOnPhaseChange(oldStatus, newStatus);
+
+      // 4. If auto-switch allowed, switch to new default mode
+      if (QrModeSelector.shouldAutoSwitch()) {
+        var balance = getBalance(currentOrder);
+        currentQrMode = QrModeSelector.selectDefaultMode(newStatus, balance);
+      }
+
+      // 5. Update tabs and re-render QR
+      var balance = getBalance(currentOrder);
+      updateQrTabs(newStatus, balance);
+      renderDynamicQr(currentOrder, currentQrMode);
+
+      // 6. Show "Ready for Pickup" banner when status becomes a ready-type status
+      if (isReadyStatus(newStatus) && !isReadyStatus(oldStatus)) {
+        showReadyBanner();
+      } else if (!isReadyStatus(newStatus)) {
+        hideReadyBanner();
+      }
+    }
+
+    /**
+     * Update the QR tab bar: show/hide tabs based on available modes, highlight active.
+     */
+    function updateQrTabs(status, balance) {
+      var availableModes = QrModeSelector.getAvailableModes(status, balance);
+
+      var tabs = {
+        track: document.getElementById("qrTabTrack"),
+        pickup: document.getElementById("qrTabPickup"),
+        pay: document.getElementById("qrTabPay"),
+        review: document.getElementById("qrTabReview")
+      };
+
+      // Show/hide tabs based on available modes
+      Object.keys(tabs).forEach(function (mode) {
+        var tab = tabs[mode];
+        if (availableModes.indexOf(mode) !== -1) {
+          tab.style.display = "block";
+        } else {
+          tab.style.display = "none";
+        }
+        // Remove all active classes
+        tab.className = "qr-tab-btn";
+      });
+
+      // Highlight the current active mode
+      if (tabs[currentQrMode] && availableModes.indexOf(currentQrMode) !== -1) {
+        tabs[currentQrMode].classList.add("active-" + currentQrMode);
+      }
+
+      // Update grid columns based on visible tabs count
+      var container = document.getElementById("qrTabsContainer");
+      container.style.gridTemplateColumns = "repeat(" + availableModes.length + ", 1fr)";
+    }
+
+    /**
+     * Render the dynamic QR code using QrPayload + QrRenderer modules.
+     */
+    function renderDynamicQr(order, mode) {
+      var container = document.getElementById("ticketQrCode");
+      var origin = window.location.origin;
+      var payload;
+
+      switch (mode) {
+        case "track":
+          payload = QrPayload.buildTrackPayload(order, origin);
+          break;
+        case "pickup":
+          payload = QrPayload.buildPickupPayload(order);
+          break;
+        case "pay":
+          payload = QrPayload.buildPayPayload(order);
+          break;
+        case "review":
+          payload = QrPayload.buildReviewPayload(order, origin);
+          break;
+        default:
+          payload = QrPayload.buildTrackPayload(order, origin);
+          mode = "track";
+      }
+
+      QrRenderer.renderQr(container, payload, mode, 160);
+    }
+
+    /**
+     * Manual tab switching: sets user override and re-renders QR with selected mode.
+     */
+    function handleTabClick(mode) {
+      QrModeSelector.setUserOverride(true);
+      currentQrMode = mode;
+
+      var status = currentOrder ? (currentOrder.status || "RECEIVED") : "RECEIVED";
+      var balance = currentOrder ? getBalance(currentOrder) : 0;
+
+      updateQrTabs(status, balance);
+      if (currentOrder) {
+        renderDynamicQr(currentOrder, mode);
+      }
+    }
+
+    // Bind click events to tab buttons
+    document.getElementById("qrTabTrack").addEventListener("click", function () { handleTabClick("track"); });
+    document.getElementById("qrTabPickup").addEventListener("click", function () { handleTabClick("pickup"); });
+    document.getElementById("qrTabPay").addEventListener("click", function () { handleTabClick("pay"); });
+    document.getElementById("qrTabReview").addEventListener("click", function () { handleTabClick("review"); });
+
+    /**
+     * Update the stepper UI to reflect the current status.
+     * Uses the dynamic status_flow_config from business config.
+     */
+    function updateStepper(status) {
+      const statusFlow = (businessConfig && businessConfig.status_flow_config && businessConfig.status_flow_config.length > 0)
+        ? businessConfig.status_flow_config
+        : DEFAULT_STATUS_FLOW;
+
+      const steps = statusFlow.map(s => s.status_key);
       const currentIdx = steps.indexOf(status);
 
       steps.forEach((st, idx) => {
@@ -316,8 +748,215 @@
           el.className = "step";
         }
       });
+    }
 
-      const rackLocation = order.rack_location || order.rackLocation;
+    /**
+     * Update the balance/paid display.
+     */
+    function updateBalanceDisplay(order) {
+      const total = Number(order.total || 0);
+      const paid = Number(order.paid || 0);
+      const balance = getBalance(order);
+
+      document.getElementById("totalAmount").textContent = money.format(total);
+      document.getElementById("paidAmount").textContent = money.format(paid);
+      document.getElementById("balanceAmount").textContent = money.format(balance);
+
+      const bCard = document.getElementById("balanceCard");
+      if (balance > 0) bCard.classList.add("has-balance");
+      else bCard.classList.remove("has-balance");
+    }
+
+    /**
+     * Calculate balance from order data.
+     */
+    function getBalance(order) {
+      if (typeof order.balance === "number") return order.balance;
+      return Math.max(0, Number(order.total || 0) - Number(order.paid || 0));
+    }
+
+    /**
+     * Show the "Ready for Pickup" notification banner.
+     */
+    function showReadyBanner() {
+      document.getElementById("readyBanner").classList.add("visible");
+    }
+
+    /**
+     * Hide the "Ready for Pickup" notification banner.
+     */
+    function hideReadyBanner() {
+      document.getElementById("readyBanner").classList.remove("visible");
+    }
+
+    /**
+     * Share the ticket URL via Web Share API or clipboard fallback.
+     */
+    async function shareTicket() {
+      const url = window.location.href;
+      const title = document.getElementById("ticketNumber").textContent;
+      const text = `${title} - Mi recibo digital. Consulta el estado aquí:`;
+
+      if (navigator.share) {
+        try {
+          await navigator.share({ title, text, url });
+        } catch (e) {
+          copyToClipboard(url);
+        }
+      } else {
+        copyToClipboard(url);
+      }
+    }
+
+    function copyToClipboard(text) {
+      navigator.clipboard.writeText(text).then(() => {
+        showToast("🔗 Link copiado al portapapeles");
+      }).catch(() => {
+        showToast("No se pudo copiar");
+      });
+    }
+
+    /**
+     * Show instructions for adding to home screen.
+     */
+    function saveToHome() {
+      const isIos = /iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase());
+      const isAndroid = /android/.test(navigator.userAgent.toLowerCase());
+
+      if (isIos) {
+        showToast("📱 Toca el botón Compartir ↗️ y luego 'Agregar a Pantalla de Inicio'");
+      } else if (isAndroid) {
+        showToast("📱 Toca el menú ⋮ y luego 'Agregar a Pantalla de Inicio'");
+      } else {
+        showToast("📱 Guarda esta URL en tus favoritos para acceso rápido");
+      }
+    }
+
+    function showToast(msg) {
+      let toast = document.getElementById("tiqueteToast");
+      if (!toast) {
+        toast = document.createElement("div");
+        toast.id = "tiqueteToast";
+        toast.style.cssText = "position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#101828;color:#fff;padding:12px 18px;border-radius:10px;font-size:13px;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:999;transition:opacity .3s;";
+        document.body.appendChild(toast);
+      }
+      toast.textContent = msg;
+      toast.style.opacity = "1";
+      setTimeout(() => { toast.style.opacity = "0"; }, 3000);
+    }
+
+    // Expose to onclick handlers
+    window.shareTicket = shareTicket;
+    window.saveToHome = saveToHome;
+
+    /**
+     * Format a custom field value based on its field type.
+     * - datetime: dd/mm/yyyy HH:mm
+     * - date: dd/mm/yyyy
+     * - boolean: "Sí" / "No"
+     * - select and others: display as-is
+     */
+    function formatCustomFieldValue(value, fieldType) {
+      if (fieldType === "datetime") {
+        const d = new Date(value);
+        if (isNaN(d.getTime())) return String(value);
+        const day = String(d.getDate()).padStart(2, "0");
+        const month = String(d.getMonth() + 1).padStart(2, "0");
+        const year = d.getFullYear();
+        const hours = String(d.getHours()).padStart(2, "0");
+        const minutes = String(d.getMinutes()).padStart(2, "0");
+        return `${day}/${month}/${year} ${hours}:${minutes}`;
+      }
+      if (fieldType === "date") {
+        const d = new Date(value);
+        if (isNaN(d.getTime())) return String(value);
+        const day = String(d.getDate()).padStart(2, "0");
+        const month = String(d.getMonth() + 1).padStart(2, "0");
+        const year = d.getFullYear();
+        return `${day}/${month}/${year}`;
+      }
+      if (fieldType === "boolean") {
+        return value ? "Sí" : "No";
+      }
+      return String(value);
+    }
+
+    /**
+     * Render custom fields from order.custom_fields using businessConfig.custom_fields_config.
+     * Skips is_delicate and rack_location (handled separately).
+     * Skips fields with null, undefined, or empty string values.
+     */
+    function renderCustomFields(order) {
+      const container = document.getElementById("customFieldsList");
+      const box = document.getElementById("customFieldsBox");
+      container.innerHTML = "";
+
+      // Fields already handled elsewhere
+      const SKIP_FIELDS = ["is_delicate", "rack_location"];
+
+      const fieldDefs = (businessConfig && businessConfig.custom_fields_config) || [];
+      const customValues = order.custom_fields || {};
+
+      let hasVisibleFields = false;
+
+      fieldDefs.forEach(function (def) {
+        // Skip fields already rendered separately
+        if (SKIP_FIELDS.indexOf(def.field_key) !== -1) return;
+
+        const value = customValues[def.field_key];
+
+        // Skip null, undefined, or empty string
+        if (value === null || value === undefined || value === "") return;
+
+        hasVisibleFields = true;
+
+        const row = document.createElement("div");
+        row.style.cssText = "display:flex; justify-content:space-between; align-items:center; padding:4px 0; font-size:14px;";
+
+        const label = document.createElement("span");
+        label.style.cssText = "color:#667085; font-weight:600; font-size:13px;";
+        label.textContent = def.display_label;
+
+        const val = document.createElement("span");
+        val.style.cssText = "font-weight:700; color:#1e293b;";
+        val.textContent = formatCustomFieldValue(value, def.field_type);
+
+        row.appendChild(label);
+        row.appendChild(val);
+        container.appendChild(row);
+      });
+
+      box.style.display = hasVisibleFields ? "block" : "none";
+    }
+
+    function renderTicket(order) {
+      document.getElementById("ticketNumber").textContent = `Tiquete #${order.order_number || order.orderNumber || "0001"}`;
+      document.getElementById("custName").textContent = order.customer_name || order.customerName || "Cliente";
+      document.getElementById("itemsText").textContent = order.items_text || order.itemsText || "Servicio contratado";
+      document.getElementById("orderDate").textContent = new Date(order.created_at || Date.now()).toLocaleDateString("es-CO");
+      
+      const total = Number(order.total || 0);
+      const paid = Number(order.paid || 0);
+      const balance = getBalance(order);
+
+      document.getElementById("totalAmount").textContent = money.format(total);
+      document.getElementById("paidAmount").textContent = money.format(paid);
+      document.getElementById("balanceAmount").textContent = money.format(balance);
+
+      const bCard = document.getElementById("balanceCard");
+      if (balance > 0) bCard.classList.add("has-balance");
+      else bCard.classList.remove("has-balance");
+
+      // Update business phone display
+      if (businessConfig && businessConfig.phone) {
+        document.getElementById("bizPhone").textContent = businessConfig.phone;
+      }
+
+      // Update Stepper
+      updateStepper(order.status || "RECEIVED");
+
+      const rackLocation = order.rack_location || order.rackLocation ||
+        (order.custom_fields && order.custom_fields.rack_location);
       if (rackLocation) {
         document.getElementById("rackBadge").style.display = "inline-block";
         document.getElementById("rackText").textContent = rackLocation;
@@ -325,28 +964,43 @@
         document.getElementById("rackBadge").style.display = "none";
       }
 
-      if (order.is_delicate || order.isDelicate) {
+      const isDelicate = order.is_delicate || order.isDelicate ||
+        (order.custom_fields && order.custom_fields.is_delicate);
+      if (isDelicate) {
         document.getElementById("delicateNotice").style.display = "block";
       } else {
         document.getElementById("delicateNotice").style.display = "none";
       }
 
+      // Render additional custom fields from business config
+      renderCustomFields(order);
+
       const waPhone = String(order.customer_phone || "").replace(/\D/g, "");
       document.getElementById("waBtn").href = `https://wa.me/${waPhone}?text=${encodeURIComponent(`Hola, consulto sobre mi tiquete #${order.order_number}`)}`;
 
-      const payProofMsg = `Hola, adjunto mi comprobante de pago para el Tiquete #${order.order_number || orderNumber} por valor de ${money.format(balance)}.`;
+      const payProofMsg = `Hola, adjunto mi comprobante de pago para el Tiquete #${order.order_number || "0001"} por valor de ${money.format(balance)}.`;
       document.getElementById("payProofBtn").href = `https://wa.me/${waPhone}?text=${encodeURIComponent(payProofMsg)}`;
     }
 
     function renderFallback(orderNumber) {
       document.getElementById("ticketNumber").textContent = `Tiquete #${orderNumber}`;
-      document.getElementById("custName").textContent = "Cliente Maktub";
-      document.getElementById("itemsText").textContent = "Lavado, secado y cuidado ecológico";
+      document.getElementById("custName").textContent = "Cliente";
+      document.getElementById("itemsText").textContent = "Servicio contratado";
       document.getElementById("totalAmount").textContent = "$35.000";
       document.getElementById("paidAmount").textContent = "$15.000";
       document.getElementById("balanceAmount").textContent = "$20.000";
-      document.getElementById("step-RECEIVED").className = "step completed";
-      document.getElementById("step-IN_PROGRESS").className = "step active";
+
+      // Mark the first step as completed and second as active (fallback)
+      const statusFlow = (businessConfig && businessConfig.status_flow_config && businessConfig.status_flow_config.length > 0)
+        ? businessConfig.status_flow_config
+        : DEFAULT_STATUS_FLOW;
+
+      if (statusFlow.length >= 2) {
+        const firstEl = document.getElementById(`step-${statusFlow[0].status_key}`);
+        const secondEl = document.getElementById(`step-${statusFlow[1].status_key}`);
+        if (firstEl) firstEl.className = "step completed";
+        if (secondEl) secondEl.className = "step active";
+      }
     }
 
     loadTicket();

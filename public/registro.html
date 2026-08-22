@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <title>TiqueteVivo | Registra tu negocio</title>
+  <meta name="description" content="Registra tu negocio en TiqueteVivo y empieza a emitir recibos digitales por WhatsApp en minutos.">
+  <style>
+    :root {
+      --ink:#102033;
+      --muted:#5f6f83;
+      --line:#d9e4ef;
+      --paper:#f5f8fb;
+      --green:#17a668;
+      --green-dark:#0d6f49;
+      --white:#fff;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:'Inter',system-ui,sans-serif;color:var(--ink);background:var(--paper);min-height:100vh;display:flex;flex-direction:column}
+    .wrap{width:min(680px,calc(100% - 32px));margin:auto}
+
+    /* Nav */
+    .nav{background:rgba(255,255,255,.94);border-bottom:1px solid var(--line);backdrop-filter:blur(14px);padding:0 16px}
+    .nav-in{min-height:64px;display:flex;align-items:center;justify-content:space-between;max-width:1160px;margin:auto}
+    .brand{display:flex;align-items:center;gap:10px;font-size:20px;font-weight:950;text-decoration:none;color:var(--ink)}
+    .mark{width:32px;height:32px;border-radius:8px;background:var(--ink);color:white;display:grid;place-items:center;font-weight:950;font-size:14px}
+    .nav a.link{color:var(--muted);text-decoration:none;font-size:14px;font-weight:700}
+
+    /* Main content */
+    .main{flex:1;padding:48px 16px}
+    h1{margin:0 0 8px;font-size:32px;font-weight:900;text-align:center}
+    .subtitle{text-align:center;color:var(--muted);font-size:16px;margin:0 0 36px}
+
+    /* Form card */
+    .card{background:var(--white);border:1px solid var(--line);border-radius:14px;padding:32px;box-shadow:0 12px 40px rgba(16,32,51,.06)}
+    .form{display:grid;gap:20px}
+    label{display:grid;gap:6px;font-weight:800;font-size:14px;color:#344054}
+    input,select{width:100%;border:1px solid var(--line);border-radius:8px;padding:12px 14px;font:inherit;font-size:15px;background:#fff;transition:border-color .2s}
+    input:focus,select:focus{outline:none;border-color:var(--green)}
+    .hint{font-size:12px;color:var(--muted);font-weight:600;margin-top:2px}
+
+    /* Verticals grid */
+    .verticals-label{font-weight:800;font-size:14px;color:#344054;margin-bottom:8px}
+    .verticals-grid{display:grid;grid-template-columns:repeat(auto-fill, minmax(140px, 1fr));gap:10px}
+    .vertical-option{position:relative}
+    .vertical-option input{position:absolute;opacity:0;pointer-events:none}
+    .vertical-option .tile{display:flex;flex-direction:column;align-items:center;gap:6px;padding:16px 10px;border:2px solid var(--line);border-radius:10px;cursor:pointer;transition:all .2s;text-align:center;font-size:12px;font-weight:700;color:var(--muted)}
+    .vertical-option .tile .emoji{font-size:28px}
+    .vertical-option input:checked + .tile{border-color:var(--green);background:#ecfdf5;color:var(--green-dark)}
+    .vertical-option .tile:hover{border-color:#a7f3d0;background:#f0fdf4}
+
+    /* Button */
+    .btn{min-height:48px;width:100%;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;border:none;padding:0 24px;font-weight:900;font-size:16px;background:var(--green);color:white;cursor:pointer;transition:background .2s;box-shadow:0 4px 14px rgba(23,166,104,.2)}
+    .btn:hover{background:var(--green-dark)}
+    .btn:disabled{opacity:.6;cursor:not-allowed}
+
+    /* Success state */
+    .success-box{display:none;text-align:center;padding:40px 20px}
+    .success-box.show{display:block}
+    .success-box .icon{font-size:56px;margin-bottom:16px}
+    .success-box h2{margin:0 0 12px;font-size:24px}
+    .success-box p{color:var(--muted);font-size:15px;margin:0 0 24px}
+    .success-box a{display:inline-flex;align-items:center;gap:8px;background:var(--ink);color:white;padding:14px 24px;border-radius:8px;text-decoration:none;font-weight:800;font-size:15px}
+
+    /* Error */
+    .error{display:none;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px 14px;color:#991b1b;font-size:13px;font-weight:700;margin-bottom:16px}
+    .error.show{display:block}
+
+    /* Footer */
+    footer{text-align:center;padding:24px 16px;color:var(--muted);font-size:13px}
+    footer a{color:var(--green);text-decoration:none;font-weight:700}
+
+    @media(max-width:520px){
+      .verticals-grid{grid-template-columns:repeat(3, 1fr)}
+      .card{padding:20px}
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="nav">
+    <div class="nav-in">
+      <a class="brand" href="/"><span class="mark">TV</span>TiqueteVivo</a>
+      <a class="link" href="/">← Volver al inicio</a>
+    </div>
+  </nav>
+
+  <div class="main">
+    <div class="wrap">
+      <h1>Registra tu negocio</h1>
+      <p class="subtitle">Selecciona tu tipo de negocio y empieza a emitir recibos digitales en minutos.</p>
+
+      <div class="card">
+        <div class="error" id="errorBox"></div>
+
+        <form class="form" id="registerForm">
+          <!-- Business info -->
+          <label>Nombre del negocio
+            <input name="name" required placeholder="Ej: Mi Parqueadero Central" autocomplete="organization">
+          </label>
+
+          <label>Slug (URL única de tu negocio)
+            <input name="slug" required placeholder="mi-parqueadero" pattern="[a-z0-9\-]+" autocomplete="off">
+            <span class="hint">Solo letras minúsculas, números y guiones. Será tu URL: tiquetevivo.com/app.html?slug=<strong>tu-slug</strong></span>
+          </label>
+
+          <label>WhatsApp del negocio
+            <input name="phone" type="tel" placeholder="+57 310 268 8991" autocomplete="tel">
+          </label>
+
+          <!-- Vertical selection -->
+          <div>
+            <div class="verticals-label">Tipo de negocio *</div>
+            <div class="verticals-grid" id="verticalsGrid">
+              <!-- Populated dynamically -->
+              <div style="color:var(--muted);font-size:13px;grid-column:1/-1;text-align:center;padding:20px;">Cargando verticales...</div>
+            </div>
+          </div>
+
+          <button class="btn" type="submit" id="submitBtn">Crear mi negocio</button>
+        </form>
+
+        <div class="success-box" id="successBox">
+          <div class="icon">🎉</div>
+          <h2>¡Negocio creado exitosamente!</h2>
+          <p>Tu panel está listo. Ya puedes crear órdenes, gestionar servicios y enviar recibos por WhatsApp.</p>
+          <a id="goToPanel" href="/app.html">Ir a mi panel →</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <p>Impulsado por <a href="/">TiqueteVivo</a> — Recibos digitales sin papel para cualquier negocio de servicio.</p>
+  </footer>
+
+  <script>
+    const VERTICALS_CONFIG = [
+      { slug: "laundry", name: "Lavandería", emoji: "🧺" },
+      { slug: "parking", name: "Parqueadero", emoji: "🅿️" },
+      { slug: "shoe-repair", name: "Calzado", emoji: "👞" },
+      { slug: "mechanic", name: "Mecánica", emoji: "🔧" },
+      { slug: "bakery", name: "Pastelería", emoji: "🎂" },
+      { slug: "tailor", name: "Sastrería", emoji: "🧵" },
+      { slug: "pet-daycare", name: "Mascotas", emoji: "🐾" },
+      { slug: "courier", name: "Mensajería", emoji: "📦" },
+      { slug: "print-center", name: "Impresión", emoji: "🖨️" },
+      { slug: "salon", name: "Belleza", emoji: "💇" },
+      { slug: "gym-locker", name: "Casilleros", emoji: "🔐" },
+      { slug: "nursery", name: "Vivero", emoji: "🌱" }
+    ];
+
+    // Render vertical selection tiles
+    const grid = document.getElementById("verticalsGrid");
+    grid.innerHTML = VERTICALS_CONFIG.map(v => `
+      <label class="vertical-option">
+        <input type="radio" name="vertical_slug" value="${v.slug}" required>
+        <div class="tile">
+          <span class="emoji">${v.emoji}</span>
+          ${v.name}
+        </div>
+      </label>
+    `).join("");
+
+    // Auto-generate slug from business name
+    const nameInput = document.querySelector('input[name="name"]');
+    const slugInput = document.querySelector('input[name="slug"]');
+    let slugManuallyEdited = false;
+
+    slugInput.addEventListener("input", () => { slugManuallyEdited = true; });
+
+    nameInput.addEventListener("input", () => {
+      if (!slugManuallyEdited) {
+        slugInput.value = nameInput.value
+          .toLowerCase()
+          .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+          .replace(/[^a-z0-9\s-]/g, "")
+          .replace(/\s+/g, "-")
+          .replace(/-+/g, "-")
+          .slice(0, 40);
+      }
+    });
+
+    // Form submission
+    const form = document.getElementById("registerForm");
+    const errorBox = document.getElementById("errorBox");
+    const successBox = document.getElementById("successBox");
+    const submitBtn = document.getElementById("submitBtn");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      errorBox.classList.remove("show");
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Creando negocio...";
+
+      const formData = Object.fromEntries(new FormData(form));
+
+      try {
+        const res = await fetch("/api/manage-business", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "register",
+            vertical_slug: formData.vertical_slug,
+            name: formData.name,
+            slug: formData.slug,
+            phone: formData.phone || null
+          })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.message || "Error al registrar el negocio");
+        }
+
+        // Success - show panel link
+        form.style.display = "none";
+        successBox.classList.add("show");
+        document.getElementById("goToPanel").href = `/app.html?slug=${formData.slug}`;
+
+      } catch (err) {
+        errorBox.textContent = `❌ ${err.message}`;
+        errorBox.classList.add("show");
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Crear mi negocio";
+      }
+    });
+  </script>
+</body>
+</html>

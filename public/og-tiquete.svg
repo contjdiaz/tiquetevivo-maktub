@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" fill="none">
+  <rect width="1200" height="630" fill="#101828"/>
+  <rect x="40" y="40" width="1120" height="550" rx="24" fill="#f4f7f6" stroke="#e4e7ec" stroke-width="2"/>
+  <text x="600" y="260" text-anchor="middle" font-family="system-ui, sans-serif" font-weight="900" font-size="72" fill="#101828">TiqueteVivo</text>
+  <text x="600" y="340" text-anchor="middle" font-family="system-ui, sans-serif" font-weight="700" font-size="36" fill="#18a058">🌱 Tu Recibo Digital — Cero Papel</text>
+  <text x="600" y="420" text-anchor="middle" font-family="system-ui, sans-serif" font-weight="600" font-size="28" fill="#667085">Consulta estado, saldo y contacta a tu lavandería</text>
+  <rect x="470" y="470" width="260" height="60" rx="12" fill="#18a058"/>
+  <text x="600" y="510" text-anchor="middle" font-family="system-ui, sans-serif" font-weight="800" font-size="22" fill="#ffffff">Ver mi tiquete</text>
+</svg>

@@ -9,6 +9,8 @@ create table if not exists businesses (
   city text,
   color text default '#18a058',
   logo_url text,
+  active boolean not null default true,
+  deactivated_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -28,6 +30,7 @@ create table if not exists orders (
   rack_location text,
   is_delicate boolean not null default false,
   whatsapp_sent_at timestamptz,
+  cancelled_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique (business_id, order_number)
