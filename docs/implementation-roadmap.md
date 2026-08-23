@@ -142,16 +142,22 @@ Recordatorios automáticos para pedidos en estado "listo" por más de X días.
 
 ---
 
-### Fase 2: Formulario dinámico por servicios (3-5 días)
+### Fase 2: Formulario dinámico por servicios (3-5 días) ✅ Implementada
 
 **Objetivo:** Cada lavandería configure sus propios servicios y el formulario se adapte.
 
-**Tareas:**
-1. Mejorar `renderServiceOptions()` y `renderCustomFieldInputs()` en `app.js`.
-2. Soportar unidades: `per_kg`, `per_item`, `flat_rate`, `per_hour`.
-3. Renderizar campos adicionales según `custom_fields_config`.
-4. Validar en backend que los campos dinámicos coincidan con la configuración.
-5. Guardar precios calculados correctamente.
+**Tareas realizadas:**
+1. ✅ Reemplazar el box fijo de kilos por `serviceDetailBox` que renderiza campos según la unidad del servicio.
+2. ✅ Soportar unidades: `per_kg`, `per_item`, `flat_rate`, `per_hour`.
+3. ✅ Cálculo automático del total según cantidad × precio unitario.
+4. ✅ Autogenerar `items_text` con descripción del servicio y cantidad.
+5. ✅ Guardar `service_type` en `custom_fields` para mostrarlo en la tabla.
+6. ✅ Mostrar tipo de servicio en tabla desktop y cards móviles.
+7. ✅ `custom_fields_config` ya se renderiza dinámicamente (existente).
+
+**Archivos modificados:**
+- `public/app.html`
+- `public/app.js`
 
 **Entregable:** Formulario que se adapta a los servicios configurados.
 

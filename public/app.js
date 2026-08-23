@@ -726,6 +726,8 @@ function render() {
     // Build custom fields display
     const customFieldsHtml = buildCustomFieldsDisplay(o);
     const confirmationHtml = buildConfirmationDisplay(o);
+    const serviceType = o.custom_fields?.service_type;
+    const serviceTypeHtml = serviceType ? `<br><small style="color:var(--blue); font-size:11px; font-weight:700;">🧺 ${serviceType}</small>` : "";
 
     return `
     <tr>
@@ -735,6 +737,7 @@ function render() {
       <td>${o.customer_name}<br><small>${o.customer_phone}</small></td>
       <td>
         ${o.items_text}
+        ${serviceTypeHtml}
         ${customFieldsHtml}
         ${confirmationHtml}
       </td>
@@ -1015,55 +1018,94 @@ function buildConfirmationDisplay(order) {
   return html.join("");
 }
 
-// ─── B2B Kilos Auto-Calculation ──────────────────────────────────────
+// ─── Dynamic Service Detail Fields ───────────────────────────────────
 
 const serviceSelect = document.getElementById("serviceTypeSelect");
-const kilosBox = document.getElementById("kilosBox");
-const kilosInput = document.getElementById("kilosInput");
-const pricePerKgInput = document.getElementById("pricePerKgInput");
+const serviceDetailBox = document.getElementById("serviceDetailBox");
+const serviceDetailRow = document.getElementById("serviceDetailRow");
 const itemsInput = document.getElementById("itemsInput");
 const totalInput = document.getElementById("totalInput");
 
 serviceSelect.addEventListener("change", () => {
   const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
   const unit = selectedOption?.dataset?.unit;
+  const price = Number(selectedOption?.dataset?.price) || 0;
 
-  if (unit === "per_kg") {
-    kilosBox.style.display = "grid";
-    recalcKilos();
-  } else {
-    kilosBox.style.display = "none";
-  }
-
-  // Auto-fill price from service config if available
-  const price = selectedOption?.dataset?.price;
-  if (price && Number(price) > 0) {
-    if (unit === "per_kg") {
-      pricePerKgInput.value = price;
-      recalcKilos();
-    } else {
-      totalInput.value = price;
-    }
-  }
-
-  // Update service description helper text
+  renderServiceDetailFields(unit, price);
   updateServiceDescription();
 });
 
-function recalcKilos() {
-  const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
-  const unit = selectedOption?.dataset?.unit;
-  if (unit === "per_kg") {
-    const k = parseFloat(kilosInput.value) || 0;
-    const p = parseFloat(pricePerKgInput.value) || 0;
-    const calcTotal = Math.round(k * p);
-    totalInput.value = calcTotal;
-    itemsInput.value = `Servicio por Kilos: ${k} kg a ${money.format(p)}/kg`;
+/**
+ * Renders dynamic input fields based on the service unit.
+ * Supported units: per_kg, per_item, per_hour, flat_rate.
+ */
+function renderServiceDetailFields(unit, defaultPrice) {
+  if (!serviceDetailBox || !serviceDetailRow) return;
+
+  serviceDetailRow.innerHTML = "";
+
+  if (!unit || unit === "flat_rate") {
+    serviceDetailBox.style.display = "none";
+    if (defaultPrice > 0 && totalInput) totalInput.value = defaultPrice;
+    return;
   }
+
+  serviceDetailBox.style.display = "grid";
+
+  if (unit === "per_kg") {
+    serviceDetailRow.innerHTML = `
+      <label>Kilos (Kg)<input id="serviceQtyInput" name="serviceQty" type="number" step="0.1" value="10" placeholder="Ej: 15.5"></label>
+      <label>Tarifa / Kg<input id="serviceUnitPriceInput" name="serviceUnitPrice" type="number" value="${defaultPrice || 4500}" placeholder="Ej: 4500"></label>
+    `;
+  } else if (unit === "per_item") {
+    serviceDetailRow.innerHTML = `
+      <label>Cantidad de prendas<input id="serviceQtyInput" name="serviceQty" type="number" min="1" value="1" placeholder="Ej: 3"></label>
+      <label>Precio por prenda<input id="serviceUnitPriceInput" name="serviceUnitPrice" type="number" value="${defaultPrice || 8000}" placeholder="Ej: 8000"></label>
+    `;
+  } else if (unit === "per_hour") {
+    serviceDetailRow.innerHTML = `
+      <label>Horas<input id="serviceQtyInput" name="serviceQty" type="number" step="0.5" value="1" placeholder="Ej: 2.5"></label>
+      <label>Tarifa / Hora<input id="serviceUnitPriceInput" name="serviceUnitPrice" type="number" value="${defaultPrice || 12000}" placeholder="Ej: 12000"></label>
+    `;
+  } else {
+    serviceDetailBox.style.display = "none";
+    return;
+  }
+
+  const qtyInput = document.getElementById("serviceQtyInput");
+  const unitPriceInput = document.getElementById("serviceUnitPriceInput");
+
+  if (qtyInput) qtyInput.addEventListener("input", recalcServiceTotal);
+  if (unitPriceInput) unitPriceInput.addEventListener("input", recalcServiceTotal);
+
+  recalcServiceTotal();
 }
 
-kilosInput.addEventListener("input", recalcKilos);
-pricePerKgInput.addEventListener("input", recalcKilos);
+function recalcServiceTotal() {
+  const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+  const unit = selectedOption?.dataset?.unit;
+  const serviceName = selectedOption?.textContent || selectedOption?.value || "Servicio";
+  const qtyInput = document.getElementById("serviceQtyInput");
+  const unitPriceInput = document.getElementById("serviceUnitPriceInput");
+
+  if (!qtyInput || !unitPriceInput || !unit) return;
+
+  const qty = parseFloat(qtyInput.value) || 0;
+  const unitPrice = parseFloat(unitPriceInput.value) || 0;
+  const calcTotal = Math.round(qty * unitPrice);
+
+  if (totalInput) totalInput.value = calcTotal;
+
+  if (itemsInput) {
+    if (unit === "per_kg") {
+      itemsInput.value = `${serviceName}: ${qty} kg a ${money.format(unitPrice)}/kg`;
+    } else if (unit === "per_item") {
+      itemsInput.value = `${serviceName}: ${qty} prenda(s) a ${money.format(unitPrice)}/und`;
+    } else if (unit === "per_hour") {
+      itemsInput.value = `${serviceName}: ${qty} hr(s) a ${money.format(unitPrice)}/hr`;
+    }
+  }
+}
 
 // ─── API Calls ───────────────────────────────────────────────────────
 
@@ -1171,12 +1213,22 @@ document.getElementById("orderForm").addEventListener("submit", async (event) =>
   // Collect custom field values into a custom_fields object
   body.custom_fields = collectCustomFieldValues();
 
+  // Store selected service type in custom_fields for reporting/display
+  const serviceSelectEl = document.getElementById("serviceTypeSelect");
+  if (serviceSelectEl && serviceSelectEl.value) {
+    body.custom_fields.service_type = serviceSelectEl.value;
+  }
+
   // Remove individual custom_field_* keys from body (they came from FormData)
   for (const key of Object.keys(body)) {
     if (key.startsWith("custom_field_")) {
       delete body[key];
     }
   }
+
+  // Remove service detail helper fields (only used for frontend calculation)
+  delete body.serviceQty;
+  delete body.serviceUnitPrice;
 
   // Attach compressed intake photo evidence if available
   if (currentIntakePhoto) {
