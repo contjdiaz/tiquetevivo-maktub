@@ -1,6 +1,15 @@
 -- Adds business_users table to link Supabase Auth users with businesses and roles.
 -- Roles: superadmin (can manage everything), owner (manages one business), operator (creates/updates orders).
 
+-- Ensure the updated_at helper function exists (idempotent)
+create or replace function update_updated_at_column()
+returns trigger as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$ language plpgsql;
+
 create table if not exists business_users (
   id uuid primary key default gen_random_uuid(),
   auth_user_id uuid not null,
