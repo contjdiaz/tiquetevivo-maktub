@@ -7,6 +7,7 @@
     "dev": "netlify dev",
     "serve": "netlify dev --offline",
     "test": "vitest --run",
+    "seed:operator": "node scripts/seed-operator.js",
     "check": "node --check netlify/functions/create-order.js && node --check netlify/functions/list-orders.js && node --check netlify/functions/save-business.js && node --check netlify/functions/whatsapp-sender.js && node --check netlify/functions/save-lead.js && node --check netlify/functions/update-order.js && node --check netlify/functions/delete-order.js && node --check netlify/functions/manage-business.js && node --check netlify/functions/admin-login.js && node --check netlify/functions/admin-stats.js && node --check netlify/functions/admin-businesses.js && node --check netlify/functions/admin-orders.js && node --check netlify/functions/admin-whatsapp-logs.js && node --check netlify/functions/admin-verticals.js && node --check netlify/functions/auth-login.js"
   },
   "dependencies": {
