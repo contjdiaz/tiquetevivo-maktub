@@ -269,6 +269,8 @@ const demoOrders = [
 
 let orders = JSON.parse(localStorage.getItem("tiquete_orders") || "null") || demoOrders;
 let lastMessage = "";
+let currentIntakePhoto = null;
+let pendingDeliveryUpdate = null; // { orderId, newStatus }
 const money = new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 });
 
 // ─── Helpers ─────────────────────────────────────────────────────────
@@ -310,8 +312,97 @@ function normalize(order) {
     balance: Number(order.balance ?? Math.max(0, Number(order.total || 0) - Number(order.paid || 0))),
     status: order.status || (businessConfig.status_flow_config[0]?.status_key || "RECEIVED"),
     due_date: order.due_date || order.dueDate || "",
-    custom_fields: customFields
+    custom_fields: customFields,
+    intake_photo_url: order.intake_photo_url || null,
+    intake_photo_taken_at: order.intake_photo_taken_at || null,
+    delivery_photo_url: order.delivery_photo_url || null,
+    delivery_photo_taken_at: order.delivery_photo_taken_at || null,
+    intake_confirmed_at: order.intake_confirmed_at || null,
+    intake_confirmed_ip: order.intake_confirmed_ip || null,
+    delivery_confirmed_at: order.delivery_confirmed_at || null,
+    delivery_confirmed_ip: order.delivery_confirmed_ip || null
   };
+}
+
+// ─── Photo Evidence Helpers ──────────────────────────────────────────
+
+/**
+ * Compresses an image file to a JPEG of max ~800px width/height.
+ * Returns a base64 data URL (image/jpeg).
+ */
+function compressImage(file, maxDimension = 800, quality = 0.8) {
+  return new Promise((resolve, reject) => {
+    if (!file || !file.type.startsWith("image/")) {
+      reject(new Error("El archivo no es una imagen"));
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let { width, height } = img;
+        if (width > height) {
+          if (width > maxDimension) {
+            height = Math.round(height * maxDimension / width);
+            width = maxDimension;
+          }
+        } else {
+          if (height > maxDimension) {
+            width = Math.round(width * maxDimension / height);
+            height = maxDimension;
+          }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, width, height);
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.onerror = () => reject(new Error("No se pudo cargar la imagen"));
+      img.src = e.target.result;
+    };
+    reader.onerror = () => reject(new Error("No se pudo leer el archivo"));
+    reader.readAsDataURL(file);
+  });
+}
+
+/**
+ * Wires a file input + preview + remove button for photo evidence.
+ */
+function wirePhotoInput({ inputId, previewId, imgId, removeId, wrapId, onChange }) {
+  const input = document.getElementById(inputId);
+  const preview = document.getElementById(previewId);
+  const img = document.getElementById(imgId);
+  const remove = document.getElementById(removeId);
+  const wrap = document.getElementById(wrapId);
+  if (!input || !preview || !img || !remove || !wrap) return;
+
+  input.addEventListener("change", async () => {
+    const file = input.files[0];
+    if (!file) return;
+    try {
+      const dataUrl = await compressImage(file);
+      img.src = dataUrl;
+      preview.classList.add("show");
+      wrap.classList.add("has-photo");
+      if (onChange) onChange(dataUrl);
+    } catch (err) {
+      console.error(`[wirePhotoInput:${inputId}] error:`, err);
+      toast(err.message || "Error al procesar la imagen");
+      input.value = "";
+    }
+  });
+
+  remove.addEventListener("click", () => {
+    input.value = "";
+    img.src = "";
+    preview.classList.remove("show");
+    wrap.classList.remove("has-photo");
+    if (onChange) onChange(null);
+  });
 }
 
 // ─── QR Generation (local, no external API dependency) ───────────────
@@ -466,19 +557,53 @@ function buildWaLink(order, templateName) {
 
 // ─── Order Status ────────────────────────────────────────────────────
 
+/**
+ * Determines if a status represents a delivered/final state.
+ * In a vertical-aware flow, this is the last step. Legacy fallback: DELIVERED.
+ */
+function isDeliveredStatus(status) {
+  if (!status) return false;
+  if (status.toUpperCase() === "DELIVERED") return true;
+  const flow = businessConfig.status_flow_config || [];
+  if (flow.length > 0) {
+    const last = flow[flow.length - 1];
+    if (last && last.status_key.toUpperCase() === status.toUpperCase()) return true;
+  }
+  return false;
+}
+
 async function changeOrderStatus(orderId, newStatus) {
   if (!orderId || orderId.startsWith("demo-")) {
     const order = orders.find(o => o.id === orderId);
     if (order) { order.status = newStatus; render(); toast("Estado actualizado localmente"); }
     return;
   }
+
+  // If changing to delivered, offer optional delivery photo first
+  if (isDeliveredStatus(newStatus)) {
+    pendingDeliveryUpdate = { orderId, newStatus };
+    openDeliveryPhotoModal();
+    return;
+  }
+
+  await doChangeOrderStatus(orderId, newStatus, null);
+}
+
+async function doChangeOrderStatus(orderId, newStatus, deliveryPhoto) {
   try {
+    const payload = { id: orderId, status: newStatus, slug: BUSINESS_SLUG };
+    if (deliveryPhoto) payload.deliveryPhoto = deliveryPhoto;
+
     const res = await fetch("/api/update-order", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: orderId, status: newStatus, slug: BUSINESS_SLUG })
+      body: JSON.stringify(payload)
     });
-    if (!res.ok) throw new Error("Error al actualizar estado");
+    if (!res.ok) {
+      const errorBody = await res.json().catch(() => ({ error: "Error desconocido" }));
+      console.error("[doChangeOrderStatus] server error:", errorBody);
+      throw new Error(errorBody.message || errorBody.error || "Error al actualizar estado");
+    }
     const updated = await res.json();
     const index = orders.findIndex(o => o.id === orderId);
     if (index !== -1) orders[index] = normalize(updated);
@@ -489,6 +614,48 @@ async function changeOrderStatus(orderId, newStatus) {
     toast(err.message);
   }
 }
+
+// ─── Delivery Photo Modal ────────────────────────────────────────────
+
+let currentDeliveryPhoto = null;
+
+function openDeliveryPhotoModal() {
+  const modal = document.getElementById("deliveryPhotoModal");
+  if (modal) modal.classList.add("show");
+  currentDeliveryPhoto = null;
+  const input = document.getElementById("deliveryPhotoInput");
+  const preview = document.getElementById("deliveryPhotoPreview");
+  const img = document.getElementById("deliveryPhotoImg");
+  const wrap = document.getElementById("deliveryPhotoWrap");
+  if (input) input.value = "";
+  if (img) img.src = "";
+  if (preview) preview.classList.remove("show");
+  if (wrap) wrap.classList.remove("has-photo");
+}
+
+function closeDeliveryPhotoModal(confirmed) {
+  const modal = document.getElementById("deliveryPhotoModal");
+  if (modal) modal.classList.remove("show");
+
+  if (confirmed && pendingDeliveryUpdate) {
+    doChangeOrderStatus(pendingDeliveryUpdate.orderId, pendingDeliveryUpdate.newStatus, currentDeliveryPhoto);
+  } else if (pendingDeliveryUpdate) {
+    doChangeOrderStatus(pendingDeliveryUpdate.orderId, pendingDeliveryUpdate.newStatus, null);
+  }
+  pendingDeliveryUpdate = null;
+  currentDeliveryPhoto = null;
+}
+
+window.openDeliveryPhotoModal = openDeliveryPhotoModal;
+window.closeDeliveryPhotoModal = closeDeliveryPhotoModal;
+
+function closeDeliveryPhotoModalOnBackdrop() {
+  // If a photo was selected, treat backdrop click as confirm to avoid losing the image.
+  // Otherwise treat it as skip.
+  closeDeliveryPhotoModal(Boolean(currentDeliveryPhoto));
+}
+
+window.closeDeliveryPhotoModalOnBackdrop = closeDeliveryPhotoModalOnBackdrop;
 
 // ─── QR Modal ────────────────────────────────────────────────────────
 
@@ -543,6 +710,7 @@ function render() {
 
     // Build custom fields display
     const customFieldsHtml = buildCustomFieldsDisplay(o);
+    const confirmationHtml = buildConfirmationDisplay(o);
 
     return `
     <tr>
@@ -553,6 +721,7 @@ function render() {
       <td>
         ${o.items_text}
         ${customFieldsHtml}
+        ${confirmationHtml}
       </td>
       <td>${money.format(o.balance)}</td>
       <td>
@@ -814,6 +983,23 @@ function buildCustomFieldsDisplay(order) {
   return html.join("");
 }
 
+function buildConfirmationDisplay(order) {
+  const html = [];
+  if (order.intake_confirmed_at) {
+    try {
+      const dateStr = new Date(order.intake_confirmed_at).toLocaleString("es-CO", { dateStyle: "short", timeStyle: "short" });
+      html.push(`<br><small style="color:#059669; font-size:11px; font-weight:800;">✅ Recibido conforme: ${dateStr}</small>`);
+    } catch { /* ignore */ }
+  }
+  if (order.delivery_confirmed_at) {
+    try {
+      const dateStr = new Date(order.delivery_confirmed_at).toLocaleString("es-CO", { dateStyle: "short", timeStyle: "short" });
+      html.push(`<br><small style="color:#1d4ed8; font-size:11px; font-weight:800;">✅ Entregado conforme: ${dateStr}</small>`);
+    } catch { /* ignore */ }
+  }
+  return html.join("");
+}
+
 // ─── B2B Kilos Auto-Calculation ──────────────────────────────────────
 
 const serviceSelect = document.getElementById("serviceTypeSelect");
@@ -901,6 +1087,28 @@ document.getElementById("syncBtn").addEventListener("click", sync);
 document.getElementById("search").addEventListener("input", render);
 document.getElementById("statusFilter").addEventListener("change", render);
 
+// Wire photo evidence inputs
+wirePhotoInput({
+  inputId: "intakePhotoInput",
+  previewId: "intakePhotoPreview",
+  imgId: "intakePhotoImg",
+  removeId: "intakePhotoRemove",
+  wrapId: "intakePhotoWrap",
+  onChange: (dataUrl) => { currentIntakePhoto = dataUrl; }
+});
+
+wirePhotoInput({
+  inputId: "deliveryPhotoInput",
+  previewId: "deliveryPhotoPreview",
+  imgId: "deliveryPhotoImg",
+  removeId: "deliveryPhotoRemove",
+  wrapId: "deliveryPhotoWrap",
+  onChange: (dataUrl) => { currentDeliveryPhoto = dataUrl; }
+});
+
+document.getElementById("deliveryPhotoSkip").addEventListener("click", () => closeDeliveryPhotoModal(false));
+document.getElementById("deliveryPhotoConfirm").addEventListener("click", () => closeDeliveryPhotoModal(true));
+
 document.getElementById("copyMessage").addEventListener("click", async () => {
   try { await navigator.clipboard.writeText(lastMessage); toast("Mensaje copiado"); } catch { toast("No se pudo copiar"); }
 });
@@ -955,6 +1163,12 @@ document.getElementById("orderForm").addEventListener("submit", async (event) =>
     }
   }
 
+  // Attach compressed intake photo evidence if available
+  if (currentIntakePhoto) {
+    body.intakePhoto = currentIntakePhoto;
+  }
+  delete body.intakePhotoInput;
+
   let order;
   let storedInCloud = false;
   try {
@@ -999,6 +1213,18 @@ document.getElementById("orderForm").addEventListener("submit", async (event) =>
   qrContainer.appendChild(scanLabel);
 
   document.getElementById("receiptBox").classList.add("show");
+
+  // Reset intake photo for next ticket
+  currentIntakePhoto = null;
+  const intakeInput = document.getElementById("intakePhotoInput");
+  const intakePreview = document.getElementById("intakePhotoPreview");
+  const intakeImg = document.getElementById("intakePhotoImg");
+  const intakeWrap = document.getElementById("intakePhotoWrap");
+  if (intakeInput) intakeInput.value = "";
+  if (intakeImg) intakeImg.src = "";
+  if (intakePreview) intakePreview.classList.remove("show");
+  if (intakeWrap) intakeWrap.classList.remove("has-photo");
+
   button.disabled = false;
   button.textContent = "✅ Crear Tiquete y Abrir WhatsApp";
   // Scroll receipt into view (works both in drawer and desktop panel)

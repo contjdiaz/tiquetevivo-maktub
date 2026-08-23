@@ -38,6 +38,21 @@ export function slugify(value) {
     .replace(/^-|-$/g, "");
 }
 
+/**
+ * Extracts the client IP from a Netlify Function event.
+ * Tries common headers used by Netlify and proxies.
+ */
+export function getClientIp(event) {
+  const headers = event.headers || {};
+  return (
+    headers["x-nf-client-connection-ip"] ||
+    headers["x-forwarded-for"]?.split(",")[0]?.trim() ||
+    headers["client-ip"] ||
+    headers["x-real-ip"] ||
+    "unknown"
+  );
+}
+
 export async function getBusinessBySlug(supabase, slug) {
   const { data, error } = await supabase
     .from("businesses")

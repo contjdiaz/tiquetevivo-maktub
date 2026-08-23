@@ -135,6 +135,100 @@
     .items-box strong { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
     .items-box p { margin: 0; font-size: 15px; font-weight: 700; color: #1e293b; line-height: 1.4; }
 
+    .photo-evidence-box {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 14px;
+      display: none;
+    }
+    .photo-evidence-box.visible {
+      display: block;
+    }
+    .photo-evidence-box strong {
+      display: block;
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+    .photo-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    @media (max-width: 400px) {
+      .photo-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    .photo-item {
+      display: grid;
+      gap: 6px;
+    }
+    .photo-item img {
+      width: 100%;
+      height: 140px;
+      object-fit: cover;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+      background: #fff;
+    }
+    .photo-item .photo-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: #475569;
+      text-align: center;
+    }
+    .photo-item .photo-time {
+      font-size: 11px;
+      color: #98a2b3;
+      text-align: center;
+    }
+
+    .confirmation-box {
+      background: #ecfdf5;
+      border: 1.5px solid #a7f3d0;
+      border-radius: 10px;
+      padding: 14px;
+      display: none;
+    }
+    .confirmation-box.visible {
+      display: block;
+    }
+    .confirmation-box.confirmed {
+      background: #dbeafe;
+      border-color: #93c5fd;
+    }
+    .confirmation-box strong {
+      display: block;
+      font-size: 13px;
+      color: #065f46;
+      margin-bottom: 8px;
+    }
+    .confirmation-box.confirmed strong {
+      color: #1e40af;
+    }
+    .confirmation-box button {
+      width: 100%;
+      border: 0;
+      background: #10b981;
+      color: #fff;
+      font-weight: 800;
+      padding: 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .confirmation-box button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .confirmation-box .confirmation-meta {
+      font-size: 12px;
+      color: #475569;
+      margin-top: 6px;
+    }
+
     .balance-card {
       background: #ecfdf5;
       border: 1.5px solid #a7f3d0;
@@ -300,6 +394,36 @@
 
       <div id="delicateNotice" style="display:none; background:#fffbe8; border:1px solid #ffe58f; padding:10px 12px; border-radius:8px; font-size:12px; color:#873800; font-weight:700;">
         ⚠️ **Prenda Delicada / Alto Valor**: Lavado con procedimiento especial. Riesgo de desgaste previo o decoloración aceptado.
+      </div>
+
+      <!-- Photo evidence section (intake + delivery) -->
+      <div id="photoEvidenceBox" class="photo-evidence-box">
+        <strong>📸 Evidencia fotográfica</strong>
+        <div class="photo-grid">
+          <div class="photo-item" id="intakePhotoItem" style="display:none;">
+            <img id="intakePhotoImg" src="" alt="Foto al recibir">
+            <div class="photo-label">Al recibir</div>
+            <div class="photo-time" id="intakePhotoTime"></div>
+          </div>
+          <div class="photo-item" id="deliveryPhotoItem" style="display:none;">
+            <img id="deliveryPhotoImg" src="" alt="Foto al entregar">
+            <div class="photo-label">Al entregar</div>
+            <div class="photo-time" id="deliveryPhotoTime"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Digital confirmations (intake + delivery) -->
+      <div id="intakeConfirmationBox" class="confirmation-box">
+        <strong>✋ Confirmación al recibir</strong>
+        <button id="intakeConfirmBtn" type="button">Confirmar recepción conforme</button>
+        <div class="confirmation-meta" id="intakeConfirmationMeta"></div>
+      </div>
+
+      <div id="deliveryConfirmationBox" class="confirmation-box">
+        <strong>✋ Confirmación al entregar</strong>
+        <button id="deliveryConfirmBtn" type="button">Confirmar entrega conforme</button>
+        <div class="confirmation-meta" id="deliveryConfirmationMeta"></div>
       </div>
 
       <!-- Dynamic custom fields section (rendered from business config) -->
@@ -725,6 +849,10 @@
     document.getElementById("qrTabPay").addEventListener("click", function () { handleTabClick("pay"); });
     document.getElementById("qrTabReview").addEventListener("click", function () { handleTabClick("review"); });
 
+    // Bind digital confirmation buttons
+    document.getElementById("intakeConfirmBtn").addEventListener("click", function () { confirmOrder("intake"); });
+    document.getElementById("deliveryConfirmBtn").addEventListener("click", function () { confirmOrder("delivery"); });
+
     /**
      * Update the stepper UI to reflect the current status.
      * Uses the dynamic status_flow_config from business config.
@@ -929,6 +1057,176 @@
       box.style.display = hasVisibleFields ? "block" : "none";
     }
 
+    function isDeliveredStatus(status) {
+      if (!status) return false;
+      if (status.toUpperCase() === "DELIVERED") return true;
+      const flow = (businessConfig && businessConfig.status_flow_config) || DEFAULT_STATUS_FLOW;
+      if (flow.length > 0) {
+        const last = flow[flow.length - 1];
+        if (last && last.status_key.toUpperCase() === status.toUpperCase()) return true;
+      }
+      return false;
+    }
+
+    function formatPhotoTime(isoString) {
+      if (!isoString) return "";
+      try {
+        const d = new Date(isoString);
+        if (isNaN(d.getTime())) return "";
+        return d.toLocaleString("es-CO", { dateStyle: "short", timeStyle: "short" });
+      } catch {
+        return "";
+      }
+    }
+
+    function renderPhotoEvidence(order) {
+      const box = document.getElementById("photoEvidenceBox");
+      const intakeItem = document.getElementById("intakePhotoItem");
+      const deliveryItem = document.getElementById("deliveryPhotoItem");
+      const intakeImg = document.getElementById("intakePhotoImg");
+      const deliveryImg = document.getElementById("deliveryPhotoImg");
+      const intakeTime = document.getElementById("intakePhotoTime");
+      const deliveryTime = document.getElementById("deliveryPhotoTime");
+
+      const intakeUrl = order.intake_photo_url || order.intakePhotoUrl || null;
+      const deliveryUrl = order.delivery_photo_url || order.deliveryPhotoUrl || null;
+
+      let hasAny = false;
+
+      if (intakeUrl) {
+        intakeImg.src = intakeUrl;
+        intakeTime.textContent = formatPhotoTime(order.intake_photo_taken_at || order.intakePhotoTakenAt);
+        intakeItem.style.display = "block";
+        hasAny = true;
+      } else {
+        intakeItem.style.display = "none";
+      }
+
+      if (deliveryUrl) {
+        deliveryImg.src = deliveryUrl;
+        deliveryTime.textContent = formatPhotoTime(order.delivery_photo_taken_at || order.deliveryPhotoTakenAt);
+        deliveryItem.style.display = "block";
+        hasAny = true;
+      } else {
+        deliveryItem.style.display = "none";
+      }
+
+      if (hasAny) {
+        box.classList.add("visible");
+      } else {
+        box.classList.remove("visible");
+      }
+    }
+
+    function formatConfirmationMeta(label, isoString, ip) {
+      if (!isoString) return "";
+      try {
+        const d = new Date(isoString);
+        if (isNaN(d.getTime())) return "";
+        const dateStr = d.toLocaleString("es-CO", { dateStyle: "short", timeStyle: "short" });
+        const ipStr = ip && ip !== "unknown" ? ` · IP: ${ip}` : "";
+        return `${label}: ${dateStr}${ipStr}`;
+      } catch {
+        return "";
+      }
+    }
+
+    async function confirmOrder(type) {
+      if (!currentOrder || !currentOrder.id) {
+        showToast("No se pudo identificar el pedido");
+        console.error("[confirmOrder] missing currentOrder or id:", currentOrder);
+        return;
+      }
+      const params = new URLSearchParams(window.location.search);
+      const slug = params.get("slug") || "majesty";
+      const body = { id: currentOrder.id, slug };
+      if (type === "intake") body.intakeConfirmed = true;
+      if (type === "delivery") body.deliveryConfirmed = true;
+
+      console.log("[confirmOrder] sending:", { type, id: currentOrder.id, slug });
+
+      const btn = document.getElementById(type + "ConfirmBtn");
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = "Guardando...";
+      }
+
+      try {
+        const res = await fetch("/api/update-order", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body)
+        });
+        if (!res.ok) {
+          const errorBody = await res.json().catch(() => ({ error: "Error desconocido" }));
+          console.error("[confirmOrder] server error:", errorBody);
+          throw new Error(errorBody.message || errorBody.error || "Error al confirmar");
+        }
+        const updated = await res.json();
+        console.log("[confirmOrder] success:", updated);
+        currentOrder = { ...currentOrder, ...updated };
+        renderConfirmations(currentOrder);
+        showToast("Confirmación guardada");
+      } catch (err) {
+        showToast(err.message || "No se pudo guardar");
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = type === "intake" ? "Confirmar recepción conforme" : "Confirmar entrega conforme";
+        }
+      }
+    }
+
+    function renderConfirmations(order) {
+      const intakeBox = document.getElementById("intakeConfirmationBox");
+      const deliveryBox = document.getElementById("deliveryConfirmationBox");
+      const intakeBtn = document.getElementById("intakeConfirmBtn");
+      const deliveryBtn = document.getElementById("deliveryConfirmBtn");
+      const intakeMeta = document.getElementById("intakeConfirmationMeta");
+      const deliveryMeta = document.getElementById("deliveryConfirmationMeta");
+
+      const intakeAt = order.intake_confirmed_at || order.intakeConfirmedAt || null;
+      const intakeIp = order.intake_confirmed_ip || order.intakeConfirmedIp || null;
+      const deliveryAt = order.delivery_confirmed_at || order.deliveryConfirmedAt || null;
+      const deliveryIp = order.delivery_confirmed_ip || order.deliveryConfirmedIp || null;
+      const isDelivered = isDeliveredStatus(order.status);
+
+      // Intake confirmation
+      if (intakeAt) {
+        intakeBox.classList.add("visible", "confirmed");
+        if (intakeBtn) intakeBtn.style.display = "none";
+        intakeMeta.textContent = formatConfirmationMeta("Confirmado", intakeAt, intakeIp);
+      } else {
+        intakeBox.classList.add("visible");
+        intakeBox.classList.remove("confirmed");
+        if (intakeBtn) {
+          intakeBtn.style.display = "block";
+          intakeBtn.textContent = "Confirmar recepción conforme";
+          intakeBtn.disabled = false;
+        }
+        intakeMeta.textContent = "";
+      }
+
+      // Delivery confirmation: only show when order is delivered or already confirmed
+      if (deliveryAt || isDelivered) {
+        if (deliveryAt) {
+          deliveryBox.classList.add("visible", "confirmed");
+          if (deliveryBtn) deliveryBtn.style.display = "none";
+          deliveryMeta.textContent = formatConfirmationMeta("Confirmado", deliveryAt, deliveryIp);
+        } else {
+          deliveryBox.classList.add("visible");
+          deliveryBox.classList.remove("confirmed");
+          if (deliveryBtn) {
+            deliveryBtn.style.display = "block";
+            deliveryBtn.textContent = "Confirmar entrega conforme";
+            deliveryBtn.disabled = false;
+          }
+          deliveryMeta.textContent = "";
+        }
+      } else {
+        deliveryBox.classList.remove("visible");
+      }
+    }
+
     function renderTicket(order) {
       document.getElementById("ticketNumber").textContent = `Tiquete #${order.order_number || order.orderNumber || "0001"}`;
       document.getElementById("custName").textContent = order.customer_name || order.customerName || "Cliente";
@@ -974,6 +1272,12 @@
 
       // Render additional custom fields from business config
       renderCustomFields(order);
+
+      // Render photo evidence (intake + delivery)
+      renderPhotoEvidence(order);
+
+      // Render digital confirmations (intake + delivery)
+      renderConfirmations(order);
 
       const waPhone = String(order.customer_phone || "").replace(/\D/g, "");
       document.getElementById("waBtn").href = `https://wa.me/${waPhone}?text=${encodeURIComponent(`Hola, consulto sobre mi tiquete #${order.order_number}`)}`;

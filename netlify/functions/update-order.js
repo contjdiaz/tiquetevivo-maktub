@@ -1,9 +1,18 @@
-import { getBusinessBySlug, json, parseBody, supabaseAdmin } from "./_utils.js";
+import { getBusinessBySlug, getClientIp, json, parseBody, supabaseAdmin } from "./_utils.js";
 import { mirrorOrderToSheets } from "./_sheets.js";
 import { validateStatus, validateAmount, validateStatusTransition, validateStatusInFlow } from "./_validators.js";
 import { sendWhatsAppMessage, buildFallbackLink, logWhatsAppMessage } from "./_whatsapp.js";
 import { getBusinessConfig } from "./_vertical-config.js";
 import { selectTemplate, renderTemplate } from "./_template-engine.js";
+
+/**
+ * Validates that a value is a base64 data URL for an image.
+ * Accepts JPEG, PNG, GIF and WebP data URLs.
+ */
+function isImageDataUrl(value) {
+  if (typeof value !== "string") return false;
+  return /^data:image\/(jpeg|png|gif|webp);base64,/.test(value);
+}
 
 export const handler = async (event) => {
   if (event.httpMethod === "OPTIONS") return json(200, {});
@@ -119,6 +128,11 @@ export const handler = async (event) => {
       }
     }
 
+    // --- Photo evidence: validate delivery photo if provided ---
+    if (body.deliveryPhoto != null && !isImageDataUrl(body.deliveryPhoto)) {
+      return json(400, { error: true, message: "deliveryPhoto must be a base64 image data URL", field: "deliveryPhoto" });
+    }
+
     if (validationErrors.length > 0) {
       return json(400, { error: true, message: validationErrors.join("; "), errors: validationErrors });
     }
@@ -151,6 +165,24 @@ export const handler = async (event) => {
     if (body.custom_fields && typeof body.custom_fields === "object") {
       const existingCustom = existingOrder.custom_fields || {};
       updatePayload.custom_fields = { ...existingCustom, ...body.custom_fields };
+    }
+
+    // Add delivery photo evidence if provided
+    if (body.deliveryPhoto) {
+      updatePayload.delivery_photo_url = body.deliveryPhoto;
+      updatePayload.delivery_photo_taken_at = new Date().toISOString();
+    }
+
+    // Add intake digital confirmation if provided
+    if (body.intakeConfirmed === true || body.intakeConfirmed === "true") {
+      updatePayload.intake_confirmed_at = new Date().toISOString();
+      updatePayload.intake_confirmed_ip = getClientIp(event);
+    }
+
+    // Add delivery digital confirmation if provided
+    if (body.deliveryConfirmed === true || body.deliveryConfirmed === "true") {
+      updatePayload.delivery_confirmed_at = new Date().toISOString();
+      updatePayload.delivery_confirmed_ip = getClientIp(event);
     }
 
     if (Object.keys(updatePayload).length === 0) {

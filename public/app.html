@@ -239,6 +239,77 @@
     .form textarea { min-height:80px; resize:vertical; }
     .row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
 
+    /* Photo input */
+    .photo-input-wrap {
+      border: 1.5px dashed var(--line);
+      border-radius: 10px;
+      padding: 12px;
+      background: #fff;
+      transition: border-color var(--transition), background var(--transition);
+    }
+    .photo-input-wrap.has-photo {
+      border-color: var(--green);
+      background: var(--soft-green);
+    }
+    .photo-input-wrap input[type="file"] {
+      display: none;
+    }
+    .photo-label-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      font-weight: 700;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+    .photo-label-btn:hover {
+      border-color: var(--green);
+      color: var(--green-dark);
+    }
+    .photo-preview {
+      margin-top: 10px;
+      position: relative;
+      display: none;
+    }
+    .photo-preview.show {
+      display: block;
+    }
+    .photo-preview img {
+      width: 100%;
+      max-height: 180px;
+      object-fit: cover;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+    }
+    .photo-remove {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      border: 0;
+      background: rgba(239, 68, 68, 0.9);
+      color: #fff;
+      border-radius: 50%;
+      width: 26px;
+      height: 26px;
+      font-size: 14px;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+    }
+    .photo-hint {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 6px;
+      font-weight: 600;
+    }
+
     /* Receipt */
     .receipt { display:none; border-color:#b9e8d4; background:var(--soft-green); margin-top:14px; }
     .receipt.show { display:grid; gap:10px; }
@@ -445,6 +516,17 @@
     .dark-mode .form-drawer-sheet { background: #1e293b; }
     .dark-mode .form-drawer-close { background: #334155; color: #f1f5f9; }
     .dark-mode h1, .dark-mode strong { color: #f1f5f9; }
+    .dark-mode .photo-input-wrap,
+    .dark-mode .photo-label-btn {
+      background: #1e293b;
+      border-color: #334155;
+      color: #f1f5f9;
+    }
+    .dark-mode .photo-input-wrap.has-photo {
+      background: #064e3b;
+      border-color: #059669;
+    }
+    .dark-mode .photo-hint { color: #94a3b8; }
 
     /* ─── Dark Mode Toggle Button ─────────────────────────────── */
     .dark-toggle {
@@ -579,6 +661,25 @@
 
             <label>Detalle<textarea id="itemsInput" name="itemsText" required placeholder="Ej: 1 sábana, 2 camisas">1 sabana</textarea></label>
 
+            <label>Evidencia fotográfica al recibir
+              <div class="photo-input-wrap" id="intakePhotoWrap">
+                <label class="photo-label-btn" for="intakePhotoInput">
+                  📸 Tomar foto / Elegir imagen
+                </label>
+                <input id="intakePhotoInput" name="intakePhotoInput" type="file" accept="image/*" capture="environment">
+                <div class="photo-preview" id="intakePhotoPreview">
+                  <img id="intakePhotoImg" src="" alt="Vista previa recepción">
+                  <button type="button" class="photo-remove" id="intakePhotoRemove" title="Quitar foto">✕</button>
+                </div>
+                <div class="photo-hint">La imagen se comprime automáticamente a ~800 px para no inflar la base de datos.</div>
+              </div>
+            </label>
+
+            <label style="flex-direction:row; align-items:center; gap:8px; margin-top:4px; cursor:pointer;">
+              <input type="checkbox" name="intakeConfirmed" id="intakeConfirmed" value="true" style="width:auto; min-height:auto;">
+              <span>✅ Cliente confirma recepción conforme</span>
+            </label>
+
             <div id="customFieldsContainer"></div>
 
             <div class="row">
@@ -633,6 +734,30 @@
         <a class="btn green" id="modalTicketLink" href="#" target="_blank" rel="noopener">🌐 Ver Tiquete</a>
         <a class="btn whatsapp" id="modalWaBtn" href="#" target="_blank" rel="noopener">📱 WhatsApp</a>
         <button class="btn light" onclick="closeQrModal()" type="button">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── Delivery Photo Modal ──────────────────────────────── -->
+  <div class="modal" id="deliveryPhotoModal" onclick="if(event.target===this)closeDeliveryPhotoModalOnBackdrop()">
+    <div class="modal-card">
+      <strong style="font-size:18px; color:var(--ink);">📸 Foto de entrega</strong>
+      <p style="margin:0; font-size:13px; color:var(--muted);">Opcional: adjunta una foto del pedido entregado. Puedes omitir este paso.</p>
+
+      <div class="photo-input-wrap" id="deliveryPhotoWrap" style="text-align:left;">
+        <label class="photo-label-btn" for="deliveryPhotoInput">
+          📷 Tomar foto / Elegir imagen
+        </label>
+        <input id="deliveryPhotoInput" type="file" accept="image/*" capture="environment">
+        <div class="photo-preview" id="deliveryPhotoPreview">
+          <img id="deliveryPhotoImg" src="" alt="Vista previa entrega">
+          <button type="button" class="photo-remove" id="deliveryPhotoRemove" title="Quitar foto">✕</button>
+        </div>
+      </div>
+
+      <div style="display:flex; gap:8px; justify-content:center; flex-wrap:wrap;">
+        <button class="btn light" id="deliveryPhotoSkip" type="button">Omitir</button>
+        <button class="btn green" id="deliveryPhotoConfirm" type="button">Confirmar entrega</button>
       </div>
     </div>
   </div>
@@ -813,6 +938,7 @@
           '    </div>',
           '  </div>',
           '  <div class="order-card-detail">' + (o.items_text || '') + '</div>',
+          '  <div class="order-card-confirmations" style="font-size:12px;">' + (typeof buildConfirmationDisplay === 'function' ? buildConfirmationDisplay(o) : '') + '</div>',
           '  <div class="order-card-balance ' + balanceClass + '">Saldo: ' + money.format(balance) + '</div>',
           '  <div class="order-card-actions">',
           '    <button class="btn green" onclick="openQrModal(\'' + o.order_number + '\')" type="button">📸 QR</button>',

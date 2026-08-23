@@ -1,9 +1,18 @@
-import { getBusinessBySlug, json, parseBody, supabaseAdmin } from "./_utils.js";
+import { getBusinessBySlug, getClientIp, json, parseBody, supabaseAdmin } from "./_utils.js";
 import { mirrorOrderToSheets } from "./_sheets.js";
 import { validatePhone, validateAmount, validateRequired, validateCustomFields, validateStatusInFlow } from "./_validators.js";
 import { sendWhatsAppMessage, buildFallbackLink, logWhatsAppMessage } from "./_whatsapp.js";
 import { getBusinessConfig } from "./_vertical-config.js";
 import { selectTemplate, renderTemplate } from "./_template-engine.js";
+
+/**
+ * Validates that a value is a base64 data URL for an image.
+ * Accepts JPEG, PNG, GIF and WebP data URLs.
+ */
+function isImageDataUrl(value) {
+  if (typeof value !== "string") return false;
+  return /^data:image\/(jpeg|png|gif|webp);base64,/.test(value);
+}
 
 export const handler = async (event) => {
   if (event.httpMethod === "OPTIONS") return json(200, {});
@@ -43,6 +52,11 @@ export const handler = async (event) => {
       if (!paidResult.valid) {
         return json(400, { error: true, message: paidResult.error, field: "paid" });
       }
+    }
+
+    // --- Photo evidence: validate intake photo if provided ---
+    if (body.intakePhoto != null && !isImageDataUrl(body.intakePhoto)) {
+      return json(400, { error: true, message: "intakePhoto must be a base64 image data URL", field: "intakePhoto" });
     }
 
     const supabase = supabaseAdmin();
@@ -126,6 +140,18 @@ export const handler = async (event) => {
 
     // Add optional columns only if values are provided
     if (body.dueDate) payload.due_date = body.dueDate;
+
+    // Add intake photo evidence if provided
+    if (body.intakePhoto) {
+      payload.intake_photo_url = body.intakePhoto;
+      payload.intake_photo_taken_at = new Date().toISOString();
+    }
+
+    // Add intake digital confirmation if provided
+    if (body.intakeConfirmed === true || body.intakeConfirmed === "true") {
+      payload.intake_confirmed_at = new Date().toISOString();
+      payload.intake_confirmed_ip = getClientIp(event);
+    }
 
     const { data, error } = await supabase
       .from("orders")
