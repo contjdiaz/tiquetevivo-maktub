@@ -38,6 +38,7 @@ create policy "superadmin manage memberships" on business_users
     )
   );
 
-create trigger if not exists update_business_users_updated_at
+drop trigger if exists update_business_users_updated_at on business_users;
+create trigger update_business_users_updated_at
   before update on business_users
   for each row execute function update_updated_at_column();
