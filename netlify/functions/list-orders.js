@@ -45,6 +45,7 @@ export const handler = async (event) => {
           name: business.name,
           phone: business.phone,
           slug: business.slug,
+          plan: business.plan || "free",
           status_flow_config: business.status_flow_config || [],
           custom_fields_config: business.custom_fields_config || [],
           vertical_emoji: verticalEmoji

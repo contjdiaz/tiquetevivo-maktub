@@ -530,7 +530,15 @@
     let currentQrMode = "track";
     let currentStatus = null;
     let poller = null;
-    let businessConfig = null; // Stores the vertical config (status_flow_config, emoji, etc.)
+    let businessConfig = null; // Stores the vertical config (status_flow_config, emoji, plan, etc.)
+
+    /**
+     * Returns true when the loaded business has a paid plan.
+     * Free plans disable premium features like photo evidence and digital confirmation.
+     */
+    function isPaidPlan() {
+      return businessConfig && businessConfig.plan === "paid";
+    }
 
     /**
      * Default status flow fallback (laundry) used when no business config is available.
@@ -1088,6 +1096,14 @@
       const intakeTime = document.getElementById("intakePhotoTime");
       const deliveryTime = document.getElementById("deliveryPhotoTime");
 
+      // Photo evidence is a paid feature
+      if (!isPaidPlan()) {
+        box.classList.remove("visible");
+        intakeItem.style.display = "none";
+        deliveryItem.style.display = "none";
+        return;
+      }
+
       const intakeUrl = order.intake_photo_url || order.intakePhotoUrl || null;
       const deliveryUrl = order.delivery_photo_url || order.deliveryPhotoUrl || null;
 
@@ -1183,6 +1199,13 @@
       const deliveryBtn = document.getElementById("deliveryConfirmBtn");
       const intakeMeta = document.getElementById("intakeConfirmationMeta");
       const deliveryMeta = document.getElementById("deliveryConfirmationMeta");
+
+      // Digital confirmation is a paid feature
+      if (!isPaidPlan()) {
+        intakeBox.classList.remove("visible");
+        deliveryBox.classList.remove("visible");
+        return;
+      }
 
       const intakeAt = order.intake_confirmed_at || order.intakeConfirmedAt || null;
       const intakeIp = order.intake_confirmed_ip || order.intakeConfirmedIp || null;

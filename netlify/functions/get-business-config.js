@@ -40,6 +40,7 @@ export const handler = async (event) => {
       business_id: business.id,
       business_name: business.name,
       business_slug: business.slug,
+      plan: business.plan || "free",
       vertical_emoji: verticalEmoji,
       vertical_name: verticalName,
       services_config: business.services_config || [],

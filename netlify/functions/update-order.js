@@ -84,6 +84,18 @@ export const handler = async (event) => {
       return json(403, { error: true, message: "Access denied" });
     }
 
+    // --- Freemium: premium features require paid plan ---
+    const isPaid = business.plan === "paid";
+    if (!isPaid && body.deliveryPhoto) {
+      return json(403, { error: true, message: "Photo evidence requires a paid plan." });
+    }
+    if (!isPaid && (body.intakeConfirmed === true || body.intakeConfirmed === "true")) {
+      return json(403, { error: true, message: "Digital confirmation requires a paid plan." });
+    }
+    if (!isPaid && (body.deliveryConfirmed === true || body.deliveryConfirmed === "true")) {
+      return json(403, { error: true, message: "Digital confirmation requires a paid plan." });
+    }
+
     // --- Input validation for updatable fields ---
     const validationErrors = [];
     const statusFlow = businessConfig.status_flow_config || [];

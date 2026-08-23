@@ -81,6 +81,15 @@ export const handler = async (event) => {
       return json(403, { error: true, message: "Business is deactivated. Cannot create orders." });
     }
 
+    // --- Freemium: premium features require paid plan ---
+    const isPaid = business.plan === "paid";
+    if (!isPaid && body.intakePhoto) {
+      return json(403, { error: true, message: "Photo evidence requires a paid plan." });
+    }
+    if (!isPaid && (body.intakeConfirmed === true || body.intakeConfirmed === "true")) {
+      return json(403, { error: true, message: "Digital confirmation requires a paid plan." });
+    }
+
     // --- Task 7.1: Fetch business config for vertical-aware validation ---
     const businessConfig = await getBusinessConfig(supabase, business.id);
 

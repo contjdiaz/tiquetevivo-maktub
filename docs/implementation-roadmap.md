@@ -163,16 +163,29 @@ Recordatorios automáticos para pedidos en estado "listo" por más de X días.
 
 ---
 
-### Fase 3: Freemium (2-3 días)
+### Fase 3: Freemium (2-3 días) ✅ Implementada
 
 **Objetivo:** Separar funcionalidades gratis de las de pago.
 
-**Tareas:**
-1. Añadir columna `plan` a `businesses` con valores `free`, `pro`, `enterprise`.
-2. Definir matriz de funcionalidades por plan.
-3. Validar plan en backend antes de permitir fotos y confirmaciones digitales.
-4. Ocultar/deshabilitar botones de foto y confirmación en plan gratuito.
-5. Mostrar mensajes de upsell.
+**Tareas realizadas:**
+1. ✅ Añadir columna `plan` a `businesses` con valores `free` y `paid` (default `free`).
+2. ✅ Exponer `plan` en `get-business-config` y `list-orders?include_business=1`.
+3. ✅ Validar plan en backend (`create-order.js`, `update-order.js`) antes de permitir fotos y confirmaciones digitales.
+4. ✅ Ocultar/deshabilitar inputs de foto y confirmación en frontend según plan.
+5. ✅ Mostrar mensaje de upsell en formulario de creación para planes gratuitos.
+6. ✅ Añadir tests de bloqueo de funciones premium en plan gratuito.
+
+**Archivos modificados:**
+- `supabase/schema.sql`
+- `supabase/migrations/007_add_business_plan.sql`
+- `netlify/functions/get-business-config.js`
+- `netlify/functions/list-orders.js`
+- `netlify/functions/create-order.js`
+- `netlify/functions/update-order.js`
+- `public/app.js`
+- `public/app.html`
+- `public/tiquete.html`
+- Tests de foto y confirmación
 
 **Entregable:** Plan gratuito limitado y planes de pago con funciones avanzadas.
 

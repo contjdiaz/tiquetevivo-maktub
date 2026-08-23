@@ -9,6 +9,7 @@ create table if not exists businesses (
   city text,
   color text default '#18a058',
   logo_url text,
+  plan text not null default 'free' check (plan in ('free', 'paid')),
   active boolean not null default true,
   deactivated_at timestamptz,
   created_at timestamptz not null default now(),

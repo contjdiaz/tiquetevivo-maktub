@@ -18,6 +18,7 @@ let businessConfig = {
   business_id: "",
   business_name: "Cargando...",
   business_slug: BUSINESS_SLUG,
+  plan: "free",
   vertical_emoji: "",
   vertical_name: "",
   services_config: [],
@@ -26,11 +27,19 @@ let businessConfig = {
   whatsapp_templates_config: {}
 };
 
+/**
+ * Returns true when the loaded business has a paid plan.
+ */
+function isPaidPlan() {
+  return businessConfig && businessConfig.plan === "paid";
+}
+
 // Fallback defaults used when config fetch fails (preserves legacy laundry behavior)
 const FALLBACK_CONFIG = {
   business_id: "",
   business_name: "Majesty Lavanderia",
   business_slug: BUSINESS_SLUG,
+  plan: "free",
   vertical_emoji: "🧺",
   vertical_name: "Lavandería",
   services_config: [
@@ -108,6 +117,38 @@ function applyConfigToUI() {
 
   // Trigger initial service selection behavior (show/hide kilos, auto-fill price)
   triggerInitialServiceSelection();
+
+  // Apply plan-based feature gating (photos, digital confirmations)
+  applyPlanGating();
+}
+
+/**
+ * Hides or shows premium UI elements based on the current business plan.
+ * Free plans disable photo evidence and digital confirmation inputs.
+ */
+function applyPlanGating() {
+  const paid = isPaidPlan();
+
+  const intakeWrap = document.getElementById("intakePhotoWrap");
+  if (intakeWrap) {
+    intakeWrap.style.display = paid ? "" : "none";
+  }
+
+  // Upsell notice for free plans
+  let upsell = document.getElementById("planUpsell");
+  if (!paid) {
+    if (!upsell) {
+      upsell = document.createElement("small");
+      upsell.id = "planUpsell";
+      upsell.style.cssText = "display:block; color:#b45309; font-size:12px; font-weight:700; margin-top:8px;";
+      upsell.textContent = "⭐ Actualiza al plan pago para activar evidencia fotográfica y confirmaciones digitales.";
+    }
+    if (intakeWrap && upsell.parentElement !== intakeWrap.parentElement) {
+      intakeWrap.parentElement.appendChild(upsell);
+    }
+  } else if (upsell) {
+    upsell.remove();
+  }
 }
 
 /**
@@ -635,6 +676,15 @@ async function doChangeOrderStatus(orderId, newStatus, deliveryPhoto) {
 let currentDeliveryPhoto = null;
 
 function openDeliveryPhotoModal() {
+  // Photo evidence is a paid feature; skip modal on free plans
+  if (!isPaidPlan()) {
+    if (pendingDeliveryUpdate) {
+      doChangeOrderStatus(pendingDeliveryUpdate.orderId, pendingDeliveryUpdate.newStatus, null);
+      pendingDeliveryUpdate = null;
+    }
+    return;
+  }
+
   const modal = document.getElementById("deliveryPhotoModal");
   if (modal) modal.classList.add("show");
   currentDeliveryPhoto = null;

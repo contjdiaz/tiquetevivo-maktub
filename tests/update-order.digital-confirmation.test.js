@@ -8,6 +8,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 let capturedPayload = null;
+let currentBusinessPlan = "paid";
 
 function createSupabaseMock() {
   return {
@@ -18,7 +19,7 @@ function createSupabaseMock() {
             eq: vi.fn(() => ({
               single: vi.fn(() =>
                 Promise.resolve({
-                  data: { id: "biz-confirm-1", slug: "majesty", name: "Majesty", active: true },
+                  data: { id: "biz-confirm-1", slug: "majesty", name: "Majesty", active: true, plan: currentBusinessPlan },
                   error: null
                 })
               )
@@ -78,7 +79,7 @@ function createSupabaseMock() {
 
 vi.mock("../netlify/functions/_utils.js", () => ({
   supabaseAdmin: vi.fn(() => createSupabaseMock()),
-  getBusinessBySlug: vi.fn().mockResolvedValue({ id: "biz-confirm-1", slug: "majesty", name: "Majesty", active: true }),
+  getBusinessBySlug: vi.fn().mockResolvedValue({ id: "biz-confirm-1", slug: "majesty", name: "Majesty", active: true, plan: "paid" }),
   getClientIp: vi.fn().mockReturnValue("192.168.1.200"),
   json: (statusCode, body) => ({
     statusCode,
@@ -129,6 +130,7 @@ import { handler } from "../netlify/functions/update-order.js";
 describe("Feature: digital confirmation on order delivery", () => {
   beforeEach(() => {
     capturedPayload = null;
+    currentBusinessPlan = "paid";
     vi.clearAllMocks();
   });
 
@@ -207,5 +209,25 @@ describe("Feature: digital confirmation on order delivery", () => {
     expect(capturedPayload.paid).toBe(50000);
     expect(capturedPayload.delivery_confirmed_at).toBeUndefined();
     expect(capturedPayload.delivery_confirmed_ip).toBeUndefined();
+  });
+
+  it("rejects digital confirmations for free plan businesses", async () => {
+    currentBusinessPlan = "free";
+
+    const event = {
+      httpMethod: "PUT",
+      headers: {},
+      body: JSON.stringify({
+        id: "order-confirm-123",
+        business_id: "biz-confirm-1",
+        deliveryConfirmed: true
+      })
+    };
+
+    const response = await handler(event);
+    expect(response.statusCode).toBe(403);
+    const body = JSON.parse(response.body);
+    expect(body.error).toBe(true);
+    expect(body.message).toMatch(/paid plan/i);
   });
 });

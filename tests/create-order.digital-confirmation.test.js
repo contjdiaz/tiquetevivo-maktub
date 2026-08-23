@@ -42,7 +42,8 @@ vi.mock("../netlify/functions/_utils.js", () => ({
     slug: "majesty",
     name: "Majesty",
     phone: "573001234567",
-    active: true
+    active: true,
+    plan: "paid"
   }),
   getClientIp: vi.fn().mockReturnValue("192.168.1.100"),
   json: (statusCode, body) => ({
@@ -158,5 +159,37 @@ describe("Feature: digital confirmation on order creation", () => {
     expect(response.statusCode).toBe(201);
     expect(capturedPayload.intake_confirmed_at).toBeUndefined();
     expect(capturedPayload.intake_confirmed_ip).toBeUndefined();
+  });
+
+  it("rejects intakeConfirmed for free plan businesses", async () => {
+    const { getBusinessBySlug } = await import("../netlify/functions/_utils.js");
+    getBusinessBySlug.mockResolvedValueOnce({
+      id: "biz-free-1",
+      slug: "freebiz",
+      name: "Free Business",
+      phone: "573001234567",
+      active: true,
+      plan: "free"
+    });
+
+    const event = {
+      httpMethod: "POST",
+      headers: {},
+      body: JSON.stringify({
+        businessSlug: "freebiz",
+        customerName: "Jimy Diaz",
+        customerPhone: "573102688991",
+        itemsText: "1 sabana",
+        total: 25000,
+        paid: 10000,
+        intakeConfirmed: true
+      })
+    };
+
+    const response = await handler(event);
+    expect(response.statusCode).toBe(403);
+    const body = JSON.parse(response.body);
+    expect(body.error).toBe(true);
+    expect(body.message).toMatch(/paid plan/i);
   });
 });

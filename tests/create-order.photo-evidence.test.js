@@ -42,7 +42,8 @@ vi.mock("../netlify/functions/_utils.js", () => ({
     slug: "majesty",
     name: "Majesty",
     phone: "573001234567",
-    active: true
+    active: true,
+    plan: "paid"
   }),
   json: (statusCode, body) => ({
     statusCode,
@@ -156,5 +157,36 @@ describe("Feature: photo-evidence on order creation", () => {
     expect(response.statusCode).toBe(201);
     expect(capturedPayload.intake_photo_url).toBeUndefined();
     expect(capturedPayload.intake_photo_taken_at).toBeUndefined();
+  });
+
+  it("rejects intakePhoto for free plan businesses", async () => {
+    const { getBusinessBySlug } = await import("../netlify/functions/_utils.js");
+    getBusinessBySlug.mockResolvedValueOnce({
+      id: "biz-free-1",
+      slug: "freebiz",
+      name: "Free Business",
+      phone: "573001234567",
+      active: true,
+      plan: "free"
+    });
+
+    const event = {
+      httpMethod: "POST",
+      body: JSON.stringify({
+        businessSlug: "freebiz",
+        customerName: "Jimy Diaz",
+        customerPhone: "573102688991",
+        itemsText: "1 sabana",
+        total: 25000,
+        paid: 10000,
+        intakePhoto: "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQ"
+      })
+    };
+
+    const response = await handler(event);
+    expect(response.statusCode).toBe(403);
+    const body = JSON.parse(response.body);
+    expect(body.error).toBe(true);
+    expect(body.message).toMatch(/paid plan/i);
   });
 });
