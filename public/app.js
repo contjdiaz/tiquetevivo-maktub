@@ -3,6 +3,13 @@
 
 const urlParams = new URLSearchParams(window.location.search);
 let BUSINESS_SLUG = urlParams.get("slug") || "majesty";
+const HAS_SLUG_PARAM = urlParams.has("slug");
+
+// Single-business mode: when accessed with a slug in the URL, hide the business selector
+// and show only that business. This is the default experience for laundry customers.
+if (HAS_SLUG_PARAM) {
+  document.body.classList.add("single-business-mode");
+}
 
 // ─── Business Config (fetched dynamically on init) ───────────────────
 // Module-level variable storing the business vertical configuration.
@@ -76,6 +83,14 @@ function applyConfigToUI() {
   if (subElement) {
     const emoji = businessConfig.vertical_emoji ? `${businessConfig.vertical_emoji} ` : "";
     subElement.textContent = `${emoji}${businessConfig.business_name || FALLBACK_CONFIG.business_name}`;
+  }
+
+  // In single-business mode, replace the global brand with the business name
+  if (HAS_SLUG_PARAM) {
+    const brandElement = document.querySelector(".brand");
+    if (brandElement && businessConfig.business_name) {
+      brandElement.innerHTML = `<span class="mark">${businessConfig.vertical_emoji || "TV"}</span>${businessConfig.business_name}`;
+    }
   }
 
   // Render status filter options dynamically from status_flow_config
@@ -1242,30 +1257,48 @@ async function loadBusinessSelector() {
   const selector = document.getElementById("businessSelector");
   if (!selector) return;
 
+  // In single-business mode we still need the business name for display,
+  // but we don't show the selector to switch businesses.
   try {
-    const res = await fetch("/api/list-businesses");
-    if (!res.ok) throw new Error("Could not load businesses");
-    const businesses = await res.json();
+    const res = await fetch(`/api/get-business-config?slug=${BUSINESS_SLUG}`);
+    if (!res.ok) throw new Error("Could not load business config");
+    const config = await res.json();
 
     selector.innerHTML = "";
+    const opt = document.createElement("option");
+    opt.value = BUSINESS_SLUG;
+    opt.textContent = config.business_name || BUSINESS_SLUG;
+    opt.selected = true;
+    selector.appendChild(opt);
 
+    if (HAS_SLUG_PARAM) {
+      // Single-business mode: no need to allow switching
+      selector.disabled = true;
+      return;
+    }
+
+    // Multi-business mode (superadmin): load full list and allow switching
+    const listRes = await fetch("/api/list-businesses");
+    if (!listRes.ok) throw new Error("Could not load businesses");
+    const businesses = await listRes.json();
+
+    selector.innerHTML = "";
     if (businesses.length === 0) {
-      const opt = document.createElement("option");
-      opt.value = "";
-      opt.textContent = "No hay negocios registrados";
-      selector.appendChild(opt);
+      const emptyOpt = document.createElement("option");
+      emptyOpt.value = "";
+      emptyOpt.textContent = "No hay negocios registrados";
+      selector.appendChild(emptyOpt);
       return;
     }
 
     for (const biz of businesses) {
-      const opt = document.createElement("option");
-      opt.value = biz.slug;
-      opt.textContent = `${biz.vertical_emoji} ${biz.name}`;
-      if (biz.slug === BUSINESS_SLUG) opt.selected = true;
-      selector.appendChild(opt);
+      const bizOpt = document.createElement("option");
+      bizOpt.value = biz.slug;
+      bizOpt.textContent = `${biz.vertical_emoji || ""} ${biz.name}`;
+      if (biz.slug === BUSINESS_SLUG) bizOpt.selected = true;
+      selector.appendChild(bizOpt);
     }
 
-    // On change, navigate to the selected business
     selector.addEventListener("change", () => {
       const newSlug = selector.value;
       if (newSlug && newSlug !== BUSINESS_SLUG) {
@@ -1273,7 +1306,7 @@ async function loadBusinessSelector() {
       }
     });
   } catch (err) {
-    console.warn("Could not load business list:", err.message);
+    console.warn("Could not load business selector:", err.message);
     selector.innerHTML = `<option value="${BUSINESS_SLUG}">${BUSINESS_SLUG}</option>`;
   }
 }

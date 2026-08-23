@@ -123,15 +123,20 @@ Recordatorios automáticos para pedidos en estado "listo" por más de X días.
 
 ## Plan de Implementación por Fases
 
-### Fase 1: Producto enfocado en lavandería (2-3 días)
+### Fase 1: Producto enfocado en lavandería (2-3 días) ✅ Implementada
 
 **Objetivo:** Que una lavandería use el producto sin ver otros negocios.
 
-**Tareas:**
-1. Ocultar selector de negocios en `app.html` cuando se accede con un slug específico.
-2. Hacer que `app.html?slug=majesty` cargue directamente ese negocio sin mostrar el selector.
-3. Filtrar `admin.html` para que el superadmin pueda ver todos, pero al hacer clic en un negocio de lavandería, vaya a `app.html?slug=<slug>`.
-4. Documentar URLs de acceso directo por negocio.
+**Tareas realizadas:**
+1. ✅ Ocultar selector de negocios en `app.html` cuando se accede con un slug específico (`?slug=...`).
+2. ✅ `app.html?slug=majesty` carga directamente ese negocio sin mostrar el selector.
+3. ✅ En modo single-business, la marca del sidebar muestra el nombre de la lavandería.
+4. ✅ `admin.html` mantiene la visión de superadmin y enlaza a cada panel con su slug.
+5. ✅ Documentar URLs de acceso directo por negocio.
+
+**Archivos modificados:**
+- `public/app.html`
+- `public/app.js`
 
 **Entregable:** Panel de lavandería limpio, sin verticales ajenas.
 
