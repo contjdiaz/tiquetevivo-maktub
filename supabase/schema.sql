@@ -114,17 +114,26 @@ alter table business_users enable row level security;
 drop policy if exists "users read own memberships" on business_users;
 create policy "users read own memberships" on business_users for select using (auth.uid() = auth_user_id);
 
+-- Helper to check superadmin status without triggering RLS recursion
+create or replace function is_superadmin(check_user_id uuid)
+returns boolean
+language plpgsql
+security definer
+as $$
+begin
+  return exists (
+    select 1 from business_users
+    where auth_user_id = check_user_id
+      and role = 'superadmin'
+      and active = true
+  );
+end;
+$$;
+
 drop policy if exists "superadmin manage memberships" on business_users;
 create policy "superadmin manage memberships" on business_users
   for all
-  using (
-    exists (
-      select 1 from business_users bu
-      where bu.auth_user_id = auth.uid()
-        and bu.role = 'superadmin'
-        and bu.active = true
-    )
-  );
+  using (is_superadmin(auth.uid()));
 
 drop trigger if exists update_business_users_updated_at on business_users;
 create trigger update_business_users_updated_at
