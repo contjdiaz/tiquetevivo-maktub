@@ -355,8 +355,8 @@
       <p class="subtitle">Acceso restringido a administradores de TiqueteVivo</p>
       <div class="login-error" id="loginError">Credenciales inválidas</div>
       <form class="login-form" id="loginForm">
-        <label>Usuario
-          <input name="username" required placeholder="admin" autocomplete="username">
+        <label>Correo electrónico
+          <input name="email" type="email" required placeholder="admin@tiquetevivo.com" autocomplete="username">
         </label>
         <label>Contraseña
           <input name="password" type="password" required placeholder="••••••••" autocomplete="current-password">
@@ -578,14 +578,15 @@
       errorEl.classList.remove('show');
 
       try {
-        const res = await fetch('/api/admin-login', {
+        // Use the new Supabase Auth login endpoint
+        const res = await fetch('/api/auth-login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(form)
         });
         const data = await res.json();
         if (!res.ok || !data.token) {
-          errorEl.textContent = data.error || 'Credenciales inválidas';
+          errorEl.textContent = data.error || data.message || 'Credenciales inválidas';
           errorEl.classList.add('show');
           return;
         }

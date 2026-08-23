@@ -20,6 +20,7 @@ vi.mock("../netlify/functions/_utils.js", () => ({
     return JSON.parse(event.body);
   },
   supabaseAdmin: vi.fn(),
+  requireAuth: vi.fn().mockResolvedValue({ user: { id: "auth-user-1" }, role: "owner" }),
 }));
 
 import { handler } from "../netlify/functions/delete-order.js";

@@ -51,6 +51,7 @@ const mockSupabaseClient = {
 vi.mock("../netlify/functions/_utils.js", () => ({
   supabaseAdmin: () => mockSupabaseClient,
   getBusinessBySlug: vi.fn(),
+  requireAuth: vi.fn().mockResolvedValue({ user: { id: "auth-user-1" }, role: "owner" }),
   json: (statusCode, body) => ({
     statusCode,
     headers: { "Content-Type": "application/json" },

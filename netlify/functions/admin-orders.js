@@ -11,7 +11,7 @@ export const handler = async (event) => {
   if (event.httpMethod === "OPTIONS") return json(200, {});
   if (event.httpMethod !== "GET") return json(405, { error: "Method not allowed" });
 
-  const auth = validateAdminToken(event);
+  const auth = await validateAdminToken(event);
   if (!auth.valid) return auth.error;
 
   try {

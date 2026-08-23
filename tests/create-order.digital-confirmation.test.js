@@ -46,6 +46,7 @@ vi.mock("../netlify/functions/_utils.js", () => ({
     plan: "paid"
   }),
   getClientIp: vi.fn().mockReturnValue("192.168.1.100"),
+  requireAuth: vi.fn().mockResolvedValue({ user: { id: "auth-user-1" }, role: "owner" }),
   json: (statusCode, body) => ({
     statusCode,
     headers: { "Content-Type": "application/json" },

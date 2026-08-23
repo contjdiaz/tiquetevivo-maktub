@@ -62,3 +62,86 @@ export async function getBusinessBySlug(supabase, slug) {
   if (error) throw error;
   return data;
 }
+
+/**
+ * Extracts the Bearer token from the Authorization header.
+ */
+export function getBearerToken(event) {
+  const authHeader = event.headers?.["authorization"] || event.headers?.["Authorization"];
+  if (!authHeader) return null;
+  const match = authHeader.match(/^Bearer\s+(.+)$/i);
+  return match ? match[1] : null;
+}
+
+/**
+ * Verifies a Supabase Auth JWT and returns the authenticated user.
+ * Returns null if the token is missing or invalid.
+ */
+export async function getAuthUser(supabase, token) {
+  if (!token) return null;
+  try {
+    const { data, error } = await supabase.auth.getUser(token);
+    if (error || !data?.user) return null;
+    return data.user;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Returns the business_users row for a given auth user and business.
+ */
+export async function getUserBusinessRole(supabase, authUserId, businessId) {
+  if (!authUserId || !businessId) return null;
+  const { data, error } = await supabase
+    .from("business_users")
+    .select("role, active")
+    .eq("auth_user_id", authUserId)
+    .eq("business_id", businessId)
+    .single();
+  if (error || !data || !data.active) return null;
+  return data.role;
+}
+
+/**
+ * Checks if a role has permission for a given action.
+ * - superadmin: all actions
+ * - owner: all actions on their business
+ * - operator: read/write orders, cannot delete business or manage users
+ */
+export function hasPermission(role, action) {
+  if (role === "superadmin") return true;
+  if (role === "owner") {
+    return ["read", "create_order", "update_order", "delete_order", "manage_business"].includes(action);
+  }
+  if (role === "operator") {
+    return ["read", "create_order", "update_order"].includes(action);
+  }
+  return false;
+}
+
+/**
+ * Requires authentication and optionally a permission for the requested business.
+ * Returns an object with { user, role } on success, or a json response on failure.
+ */
+export async function requireAuth(supabase, event, options = {}) {
+  const token = getBearerToken(event);
+  const user = await getAuthUser(supabase, token);
+  if (!user) {
+    return { error: json(401, { error: true, message: "Authentication required" }) };
+  }
+
+  if (options.permission) {
+    const businessId = options.businessId;
+    if (!businessId) {
+      return { error: json(400, { error: true, message: "businessId is required for permission check" }) };
+    }
+    const role = await getUserBusinessRole(supabase, user.id, businessId);
+    if (!role || !hasPermission(role, options.permission)) {
+      return { error: json(403, { error: true, message: "Insufficient permissions" }) };
+    }
+    return { user, role };
+  }
+
+  return { user };
+}

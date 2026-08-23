@@ -1,4 +1,4 @@
-import { getBusinessBySlug, getClientIp, json, parseBody, supabaseAdmin } from "./_utils.js";
+import { getBusinessBySlug, getClientIp, json, parseBody, requireAuth, supabaseAdmin } from "./_utils.js";
 import { mirrorOrderToSheets } from "./_sheets.js";
 import { validatePhone, validateAmount, validateRequired, validateCustomFields, validateStatusInFlow } from "./_validators.js";
 import { sendWhatsAppMessage, buildFallbackLink, logWhatsAppMessage } from "./_whatsapp.js";
@@ -75,6 +75,13 @@ export const handler = async (event) => {
     } else {
       business = await getBusinessBySlug(supabase, slug);
     }
+
+    // --- Authentication and authorization ---
+    const authResult = await requireAuth(supabase, event, {
+      permission: "create_order",
+      businessId: business.id
+    });
+    if (authResult.error) return authResult.error;
 
     // --- Task 4.2: Check business active status ---
     if (business.active === false) {

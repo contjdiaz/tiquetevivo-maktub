@@ -1,4 +1,4 @@
-import { getBusinessBySlug, getClientIp, json, parseBody, supabaseAdmin } from "./_utils.js";
+import { getBusinessBySlug, getClientIp, json, parseBody, requireAuth, supabaseAdmin } from "./_utils.js";
 import { mirrorOrderToSheets } from "./_sheets.js";
 import { validateStatus, validateAmount, validateStatusTransition, validateStatusInFlow } from "./_validators.js";
 import { sendWhatsAppMessage, buildFallbackLink, logWhatsAppMessage } from "./_whatsapp.js";
@@ -83,6 +83,14 @@ export const handler = async (event) => {
     if (existingOrder.business_id !== business.id) {
       return json(403, { error: true, message: "Access denied" });
     }
+
+    // --- Authentication and authorization ---
+    const permission = body.status === "CANCELLED" ? "delete_order" : "update_order";
+    const authResult = await requireAuth(supabase, event, {
+      permission,
+      businessId: business.id
+    });
+    if (authResult.error) return authResult.error;
 
     // --- Freemium: premium features require paid plan ---
     const isPaid = business.plan === "paid";

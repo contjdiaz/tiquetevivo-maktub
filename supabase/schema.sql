@@ -93,7 +93,47 @@ alter table whatsapp_messages enable row level security;
 drop policy if exists "public can read whatsapp_messages" on whatsapp_messages;
 create policy "public can read whatsapp_messages" on whatsapp_messages for select using (true);
 
+-- Business users and roles
+create table if not exists business_users (
+  id uuid primary key default gen_random_uuid(),
+  auth_user_id uuid not null,
+  business_id uuid references businesses(id) on delete cascade,
+  email text not null,
+  role text not null default 'operator' check (role in ('superadmin', 'owner', 'operator')),
+  active boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (auth_user_id, business_id)
+);
+
+create index if not exists business_users_auth_idx on business_users (auth_user_id);
+create index if not exists business_users_business_idx on business_users (business_id);
+
+alter table business_users enable row level security;
+
+drop policy if exists "users read own memberships" on business_users;
+create policy "users read own memberships" on business_users for select using (auth.uid() = auth_user_id);
+
+drop policy if exists "superadmin manage memberships" on business_users;
+create policy "superadmin manage memberships" on business_users
+  for all
+  using (
+    exists (
+      select 1 from business_users bu
+      where bu.auth_user_id = auth.uid()
+        and bu.role = 'superadmin'
+        and bu.active = true
+    )
+  );
+
+create trigger if not exists update_business_users_updated_at
+  before update on business_users
+  for each row execute function update_updated_at_column();
+
+-- Seed default business
 insert into businesses (slug, name, phone, address, city, color)
 values ('majesty', 'Majesty Lavanderia', '+573001234567', 'Calle 50 #21-15', 'Medellin', '#18a058')
 on conflict (slug) do update set name = excluded.name;
+
+
 

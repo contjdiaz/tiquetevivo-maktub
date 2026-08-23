@@ -191,17 +191,37 @@ Recordatorios automáticos para pedidos en estado "listo" por más de X días.
 
 ---
 
-### Fase 4: Roles y autenticación (1-2 semanas)
+### Fase 4: Roles y autenticación (1-2 semanas) ✅ Implementada
 
 **Objetivo:** Saber quién hace qué y limitar accesos.
 
-**Tareas:**
-1. Implementar Supabase Auth o Netlify Identity.
-2. Crear tabla `users` con `role`, `business_id`, `email`.
-3. Crear roles: `superadmin`, `owner`, `operator`.
-4. Modificar Netlify Functions para validar JWT y aplicar RLS.
-5. Actualizar tests para simular usuarios autenticados.
-6. Crear pantallas de login y gestión de usuarios en `admin.html`.
+**Tareas realizadas:**
+1. ✅ Crear tabla `business_users` con `auth_user_id`, `business_id`, `email`, `role` y `active`.
+2. ✅ Definir roles: `superadmin`, `owner`, `operator`.
+3. ✅ Crear helpers de autenticación en `_utils.js`: `getAuthUser`, `getUserBusinessRole`, `hasPermission`, `requireAuth`.
+4. ✅ Crear endpoint `/api/auth-login` usando Supabase Auth.
+5. ✅ Proteger endpoints de escritura (`create-order`, `update-order`, `delete-order`) con JWT y permisos.
+6. ✅ Actualizar `_admin-auth.js` para aceptar JWT de Supabase Auth + rol superadmin (mantiene compatibilidad con token legacy).
+7. ✅ Añadir pantalla de login en `app.html` para operadores.
+8. ✅ Actualizar `admin.html` para usar el nuevo login de Supabase Auth.
+9. ✅ Enviar `Authorization: Bearer <token>` en todas las llamadas del panel operador.
+10. ✅ Actualizar tests con mocks de autenticación y añadir tests para `auth-login`.
+
+**Archivos modificados:**
+- `supabase/schema.sql`
+- `supabase/migrations/008_add_business_users.sql`
+- `netlify/functions/_utils.js`
+- `netlify/functions/_admin-auth.js`
+- `netlify/functions/create-order.js`
+- `netlify/functions/update-order.js`
+- `netlify/functions/delete-order.js`
+- `netlify/functions/auth-login.js` (nuevo)
+- `netlify/functions/admin-*.js`
+- `public/app.html`
+- `public/app.js`
+- `public/admin.html`
+- `package.json` (script check)
+- Tests
 
 **Entregable:** Sistema de login con roles y auditoría real.
 

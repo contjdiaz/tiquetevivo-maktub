@@ -1,4 +1,4 @@
-import { json, parseBody, supabaseAdmin } from "./_utils.js";
+import { json, parseBody, requireAuth, supabaseAdmin } from "./_utils.js";
 
 export const handler = async (event) => {
   if (event.httpMethod === "OPTIONS") return json(200, {});
@@ -38,6 +38,14 @@ export const handler = async (event) => {
         message: "Order not found or does not belong to this business"
       });
     }
+
+    // --- Authentication and authorization ---
+    const permission = action === "hard-delete" ? "delete_order" : "delete_order";
+    const authResult = await requireAuth(supabase, event, {
+      permission,
+      businessId: business_id
+    });
+    if (authResult.error) return authResult.error;
 
     // --- Cancel action ---
     if (action === "cancel") {

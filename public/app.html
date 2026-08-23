@@ -37,6 +37,39 @@
     button,input,select,textarea { font:inherit; }
     a { color:inherit; }
 
+    /* ─── Login overlay ─────────────────────────────────────── */
+    .login-overlay {
+      position:fixed; inset:0; z-index:9999;
+      background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+      display:flex; align-items:center; justify-content:center;
+      padding:20px;
+    }
+    .login-overlay.hidden { display:none; }
+    .login-card {
+      width:min(420px, 100%);
+      background:var(--panel); border-radius:var(--radius);
+      padding:32px; box-shadow:0 24px 60px rgba(0,0,0,.25);
+    }
+    .login-card h2 { margin:0 0 8px; font-size:22px; }
+    .login-card p { margin:0 0 24px; color:var(--muted); font-size:14px; }
+    .login-card label { display:block; margin-bottom:16px; font-weight:700; font-size:14px; }
+    .login-card input {
+      width:100%; margin-top:6px; padding:12px 14px;
+      border:1px solid var(--line); border-radius:10px;
+    }
+    .login-card button {
+      width:100%; padding:14px; border:none; border-radius:10px;
+      background:var(--green); color:#fff; font-weight:800; cursor:pointer;
+    }
+    .login-card button:disabled { opacity:.6; cursor:not-allowed; }
+    .login-error { color:var(--red); font-size:13px; margin-top:12px; font-weight:700; }
+    .user-pill {
+      display:flex; align-items:center; gap:8px;
+      padding:8px 12px; background:rgba(255,255,255,.08);
+      border-radius:999px; font-size:12px; font-weight:700;
+      margin-top:auto;
+    }
+
     /* ─── Shell (desktop: sidebar + main) ───────────────────── */
     .shell {
       display:grid;
@@ -542,6 +575,24 @@
   </style>
 </head>
 <body>
+  <!-- ─── Login overlay ─────────────────────────────────────────────── -->
+  <div id="loginOverlay" class="login-overlay hidden">
+    <div class="login-card">
+      <h2>🔐 Acceso al panel</h2>
+      <p>Ingresa tus credenciales de operador para continuar.</p>
+      <form id="loginForm">
+        <label>Correo electrónico
+          <input id="loginEmail" type="email" required placeholder="operador@negocio.com">
+        </label>
+        <label>Contraseña
+          <input id="loginPassword" type="password" required placeholder="••••••••">
+        </label>
+        <button id="loginBtn" type="submit">Ingresar</button>
+        <div id="loginError" class="login-error"></div>
+      </form>
+    </div>
+  </div>
+
   <div class="shell">
     <!-- ─── Sidebar (desktop) ─────────────────────────────── -->
     <aside>
@@ -562,6 +613,9 @@
           <button data-section="ajustes" disabled title="Próximamente">⚙️ Ajustes</button>
         </div>
       </div>
+
+      <div id="userPill" class="user-pill" style="display:none;"></div>
+      <button id="logoutBtn" class="user-pill" type="button" style="display:none; margin-top:8px; cursor:pointer;">🚪 Cerrar sesión</button>
 
       <div class="data-box">
         <label>Estado de datos</label>

@@ -11,6 +11,125 @@ if (HAS_SLUG_PARAM) {
   document.body.classList.add("single-business-mode");
 }
 
+// ─── Authentication ──────────────────────────────────────────────────
+// Stores the Supabase Auth access token for protected API calls.
+// The login overlay is shown when no token is available.
+
+let authToken = localStorage.getItem("tiquete_auth_token") || null;
+let currentUser = null;
+
+function isLoggedIn() {
+  return Boolean(authToken);
+}
+
+/**
+ * Wrapper around fetch that adds the Authorization header when a token exists.
+ */
+async function authFetch(url, options = {}) {
+  const opts = { ...options };
+  if (authToken) {
+    opts.headers = {
+      ...opts.headers,
+      Authorization: `Bearer ${authToken}`
+    };
+  }
+  return fetch(url, opts);
+}
+
+/**
+ * Shows or hides the login overlay.
+ */
+function setLoginVisible(visible) {
+  const overlay = document.getElementById("loginOverlay");
+  if (overlay) {
+    overlay.classList.toggle("hidden", !visible);
+  }
+}
+
+/**
+ * Renders the current user pill in the sidebar.
+ */
+function renderUserPill() {
+  const pill = document.getElementById("userPill");
+  const logoutBtn = document.getElementById("logoutBtn");
+  if (!pill || !logoutBtn) return;
+
+  if (currentUser && currentUser.email) {
+    pill.style.display = "flex";
+    pill.textContent = `👤 ${currentUser.email}`;
+    logoutBtn.style.display = "flex";
+  } else {
+    pill.style.display = "none";
+    logoutBtn.style.display = "none";
+  }
+}
+
+/**
+ * Handles the login form submission.
+ */
+async function handleLogin(event) {
+  event.preventDefault();
+  const btn = document.getElementById("loginBtn");
+  const errorEl = document.getElementById("loginError");
+  const email = document.getElementById("loginEmail").value.trim();
+  const password = document.getElementById("loginPassword").value;
+
+  btn.disabled = true;
+  btn.textContent = "Verificando...";
+  errorEl.textContent = "";
+
+  try {
+    const res = await fetch("/api/auth-login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password })
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.message || "Credenciales inválidas");
+    }
+
+    authToken = data.token;
+    currentUser = data.user;
+    localStorage.setItem("tiquete_auth_token", authToken);
+    setLoginVisible(false);
+    renderUserPill();
+    // Reload data now that we are authenticated
+    await fetchBusinessConfig();
+    await sync();
+  } catch (err) {
+    errorEl.textContent = err.message || "No se pudo iniciar sesión";
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Ingresar";
+  }
+}
+
+function handleLogout() {
+  authToken = null;
+  currentUser = null;
+  localStorage.removeItem("tiquete_auth_token");
+  setLoginVisible(true);
+  renderUserPill();
+}
+
+/**
+ * Initializes authentication UI and state.
+ */
+function initAuth() {
+  const loginForm = document.getElementById("loginForm");
+  const logoutBtn = document.getElementById("logoutBtn");
+  if (loginForm) loginForm.addEventListener("submit", handleLogin);
+  if (logoutBtn) logoutBtn.addEventListener("click", handleLogout);
+
+  if (!isLoggedIn()) {
+    setLoginVisible(true);
+  } else {
+    renderUserPill();
+  }
+}
+
 // ─── Business Config (fetched dynamically on init) ───────────────────
 // Module-level variable storing the business vertical configuration.
 // Populated by fetchBusinessConfig() on app load.
@@ -69,7 +188,7 @@ const FALLBACK_CONFIG = {
  */
 async function fetchBusinessConfig() {
   try {
-    const response = await fetch(`/api/get-business-config?slug=${BUSINESS_SLUG}`);
+    const response = await authFetch(`/api/get-business-config?slug=${BUSINESS_SLUG}`);
     if (!response.ok) throw new Error("Config fetch failed");
     const config = await response.json();
     businessConfig = config;
@@ -650,7 +769,7 @@ async function doChangeOrderStatus(orderId, newStatus, deliveryPhoto) {
     const payload = { id: orderId, status: newStatus, slug: BUSINESS_SLUG };
     if (deliveryPhoto) payload.deliveryPhoto = deliveryPhoto;
 
-    const res = await fetch("/api/update-order", {
+    const res = await authFetch("/api/update-order", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
@@ -1161,7 +1280,7 @@ function recalcServiceTotal() {
 
 async function sync() {
   try {
-    const response = await fetch(`/api/list-orders?slug=${BUSINESS_SLUG}`);
+    const response = await authFetch(`/api/list-orders?slug=${BUSINESS_SLUG}`);
     if (!response.ok) throw new Error("No se pudo conectar. Seguimos en modo demo.");
     orders = (await response.json()).map(normalize);
     localStorage.setItem("tiquete_orders", JSON.stringify(orders));
@@ -1176,7 +1295,7 @@ async function sync() {
 }
 
 async function createOrder(payload) {
-  const response = await fetch("/api/create-order", {
+    const response = await authFetch("/api/create-order", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload)
@@ -1362,7 +1481,7 @@ async function loadBusinessSelector() {
   // In single-business mode we still need the business name for display,
   // but we don't show the selector to switch businesses.
   try {
-    const res = await fetch(`/api/get-business-config?slug=${BUSINESS_SLUG}`);
+    const res = await authFetch(`/api/get-business-config?slug=${BUSINESS_SLUG}`);
     if (!res.ok) throw new Error("Could not load business config");
     const config = await res.json();
 
@@ -1380,7 +1499,7 @@ async function loadBusinessSelector() {
     }
 
     // Multi-business mode (superadmin): load full list and allow switching
-    const listRes = await fetch("/api/list-businesses");
+    const listRes = await authFetch("/api/list-businesses");
     if (!listRes.ok) throw new Error("Could not load businesses");
     const businesses = await listRes.json();
 
@@ -1419,6 +1538,14 @@ async function loadBusinessSelector() {
  * Requirements: 10.1
  */
 async function init() {
+  // Initialize authentication UI first
+  initAuth();
+
+  // If not authenticated, wait for login; data loading happens after login
+  if (!isLoggedIn()) {
+    return;
+  }
+
   // Show skeleton loaders while data loads
   if (typeof SkeletonLoader !== 'undefined') {
     SkeletonLoader.showTableSkeleton(document.getElementById('ordersBody'), 5, 6);
