@@ -62,7 +62,10 @@ function createMockSupabase(businessData) {
 vi.mock("../netlify/functions/_utils.js", () => ({
   json: (status, body) => ({ statusCode: status, body: JSON.stringify(body) }),
   parseBody: (event) => JSON.parse(event.body || "{}"),
-  supabaseAdmin: vi.fn()
+  supabaseAdmin: vi.fn(),
+  requireAuth: vi.fn().mockResolvedValue({ user: { id: "user-1" }, role: "owner" }),
+  getBearerToken: vi.fn().mockReturnValue("valid-token"),
+  getAuthUser: vi.fn().mockResolvedValue({ id: "user-1" })
 }));
 
 // Mock validators
@@ -82,6 +85,7 @@ import { supabaseAdmin } from "../netlify/functions/_utils.js";
 function makeEvent(body) {
   return {
     httpMethod: "POST",
+    headers: { authorization: "Bearer valid-token" },
     body: JSON.stringify(body)
   };
 }

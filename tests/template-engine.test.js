@@ -50,6 +50,26 @@ describe("_template-engine: selectTemplate", () => {
     expect(result).toContain("{business_name}");
     expect(result).toContain("{status_label}");
   });
+
+  it("returns built-in customer_reactivation template when no overrides exist", () => {
+    const result = selectTemplate("customer_reactivation", null, null);
+    expect(result).toContain("{customer_name}");
+    expect(result).toContain("{last_service}");
+    expect(result).toContain("{days_inactive}");
+    expect(result).toContain("{coupon_link}");
+    expect(result).toContain("{business_name}");
+  });
+
+  it("customer_reactivation built-in template includes a CTA", () => {
+    const result = selectTemplate("customer_reactivation", null, null);
+    expect(result).toContain("Te esperamos");
+  });
+
+  it("business override takes priority over built-in customer_reactivation", () => {
+    const businessTemplates = { customer_reactivation: "Custom: {customer_name}" };
+    const result = selectTemplate("customer_reactivation", businessTemplates, null);
+    expect(result).toBe("Custom: {customer_name}");
+  });
 });
 
 describe("_template-engine: renderTemplate", () => {
@@ -144,5 +164,34 @@ describe("_template-engine: renderTemplate", () => {
     const orderData = { custom_fields: { is_delicate: false } };
     const result = renderTemplate(template, orderData, {});
     expect(result).toBe("Delicado: false");
+  });
+
+  it("interpolates customer_reactivation placeholders correctly", () => {
+    const template = selectTemplate("customer_reactivation", null, null);
+    const orderData = {
+      customer_name: "María",
+      last_service: "Lavado Premium",
+      days_inactive: 45,
+      coupon_link: "https://tiquete.com/coupon/ABC123"
+    };
+    const businessData = { name: "Maktub Lavandería" };
+
+    const result = renderTemplate(template, orderData, businessData);
+    expect(result).toContain("María");
+    expect(result).toContain("Maktub Lavandería");
+    expect(result).toContain("Lavado Premium");
+    expect(result).toContain("45");
+    expect(result).toContain("https://tiquete.com/coupon/ABC123");
+    expect(result).not.toContain("{customer_name}");
+    expect(result).not.toContain("{last_service}");
+    expect(result).not.toContain("{days_inactive}");
+    expect(result).not.toContain("{coupon_link}");
+    expect(result).not.toContain("{business_name}");
+  });
+
+  it("renders days_inactive as string when value is 0", () => {
+    const template = "Días: {days_inactive}";
+    const result = renderTemplate(template, { days_inactive: 0 }, {});
+    expect(result).toBe("Días: 0");
   });
 });

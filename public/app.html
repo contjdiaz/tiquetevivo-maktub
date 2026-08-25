@@ -527,6 +527,96 @@
       .panel.form-panel { display:block !important; }
     }
 
+    /* ─── Kanban board ───────────────────────────────────────── */
+    .kanban-board { display:none; margin-top:12px; }
+    body.kanban-active .kanban-board { display:block; }
+    body.kanban-active .panel .table-wrap,
+    body.kanban-active .panel .order-cards { display:none !important; }
+
+    .kanban-fallback {
+      background: var(--soft-green); border: 1px solid var(--line);
+      border-radius: 8px; padding: 8px 12px; margin-bottom: 10px;
+      font-size: 12px; color: var(--muted);
+    }
+
+    .kanban-track {
+      display: flex; gap: 12px; align-items: stretch;
+      overflow-x: auto; padding-bottom: 10px;
+      scroll-snap-type: x proximity;
+    }
+    .kanban-track::-webkit-scrollbar { height: 8px; }
+    .kanban-track::-webkit-scrollbar-thumb { background: var(--line); border-radius: 4px; }
+
+    .kanban-column {
+      flex: 0 0 260px; width: 260px; scroll-snap-align: start;
+      background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius);
+      padding: 10px; display: flex; flex-direction: column; min-height: 320px;
+    }
+    .kanban-column-header {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 8px; margin-bottom: 10px; padding: 2px 2px 0;
+    }
+    .kanban-column-title { font-weight: 800; font-size: 13px; letter-spacing:.02em; }
+    .kanban-column-count {
+      background: #eef6ff; color: var(--blue);
+      border-radius: 999px; padding: 2px 9px; font-size: 12px; font-weight: 800;
+    }
+    .kanban-column-hint { margin-top: auto; padding-top: 10px; font-size: 11px; color: var(--muted); text-align:center; }
+
+    .kanban-cards {
+      display: flex; flex-direction: column; gap: 8px;
+      flex: 1; max-height: 62vh; overflow-y: auto;
+      border-radius: 10px; padding: 4px;
+      transition: background var(--transition), outline-color var(--transition);
+      outline: 2px dashed transparent; outline-offset: -3px;
+    }
+    .kanban-cards.kanban-valid-target {
+      background: rgba(16,185,129,.07);
+      outline-color: var(--green);
+    }
+    .kanban-cards.kanban-invalid-target { opacity: .45; }
+
+    .kanban-card {
+      background: var(--panel); border: 1px solid var(--line);
+      border-radius: 10px; padding: 10px; cursor: grab;
+      box-shadow: var(--shadow-sm);
+      transition: transform var(--transition), box-shadow var(--transition);
+    }
+    .kanban-card:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); }
+    .kanban-card-cancelled { opacity: .6; cursor: default; }
+
+    .kanban-card-top { display:flex; justify-content:space-between; align-items:center; gap:6px; margin-bottom:4px; }
+    .kanban-card-num { font-weight: 800; font-size: 13px; }
+    .kanban-card-balance { font-size: 11px; font-weight: 800; border-radius: 999px; padding: 2px 8px; white-space:nowrap; }
+    .kanban-card-balance.pending { background:#fef2f2; color:var(--red); }
+    .kanban-card-balance.zero { background:var(--soft-green); color:var(--green-dark); }
+    .kanban-card-name { font-weight: 700; font-size: 13px; margin-bottom: 2px; }
+    .kanban-card-items {
+      font-size: 12px; color: var(--muted); line-height: 1.35;
+      display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+    }
+    .kanban-card-chip {
+      display:inline-block; margin-top:6px; margin-right:4px;
+      font-size:11px; font-weight:700; color: var(--blue);
+      background:#eef6ff; border-radius:999px; padding:2px 8px;
+    }
+    .kanban-card-chip.kanban-card-rack { color: var(--amber); background:#fffbeb; }
+
+    .kanban-ghost { opacity:.35; }
+    .kanban-chosen { box-shadow: var(--shadow-md) !important; }
+    .kanban-dragging { transform: rotate(2deg); }
+
+    /* Cancel zone */
+    .kanban-cancel-zone { flex-basis: 190px; width: 190px; background:#fef2f2; border-color:#fecaca; }
+    .kanban-cancel-zone .kanban-column-title { color: var(--red); }
+    .kanban-cancel-zone .kanban-column-count { background:#fee2e2; color:var(--red); }
+    .kanban-cancel-zone .kanban-cards.kanban-valid-target { background: rgba(239,68,68,.08); outline-color: var(--red); }
+
+    @media (max-width: 767px) {
+      .kanban-column { flex-basis: 230px; width: 230px; min-height: 260px; }
+      .kanban-cards { max-height: 52vh; }
+    }
+
     /* ─── Dark Mode Overrides ────────────────────────────────── */
     .dark-mode table { background: var(--panel); }
     .dark-mode th { background: #1e293b; color: #94a3b8; }
@@ -549,6 +639,13 @@
     .dark-mode .modal-card { background: #1e293b; }
     .dark-mode .form-drawer-sheet { background: #1e293b; }
     .dark-mode .form-drawer-close { background: #334155; color: #f1f5f9; }
+    .dark-mode .kanban-column { background: #0f172a; border-color: #334155; }
+    .dark-mode .kanban-card { background: #1e293b; border-color: #334155; }
+    .dark-mode .kanban-card-balance.pending { background:#450a0a; color:#fca5a5; }
+    .dark-mode .kanban-card-balance.zero { background:#064e3b; color:#6ee7b7; }
+    .dark-mode .kanban-card-chip { background:#1e1b4b; color:#a5b4fc; }
+    .dark-mode .kanban-card-chip.kanban-card-rack { background:#451a03; color:#fcd34d; }
+    .dark-mode .kanban-cancel-zone { background:#450a0a; border-color:#7f1d1d; }
     .dark-mode h1, .dark-mode strong { color: #f1f5f9; }
     .dark-mode .photo-input-wrap,
     .dark-mode .photo-label-btn {
@@ -572,6 +669,75 @@
       transition: all var(--transition);
     }
     .dark-toggle:hover { background: rgba(255,255,255,.12); color: #fff; }
+
+    /* ─── Loyalty Badge ──────────────────────────────────────── */
+    .loyalty-badge {
+      background: #fef3c7 !important; color: #92400e !important;
+      font-size: 10px !important; padding: 2px 7px !important;
+      vertical-align: middle; margin-left: 4px;
+    }
+    .dark-mode .loyalty-badge {
+      background: #451a03 !important; color: #fcd34d !important;
+    }
+
+    /* ─── Coupon Redemption Panel ────────────────────────────── */
+    .coupon-panel {
+      background: var(--panel); border: 1px solid var(--line);
+      border-radius: var(--radius); padding: 16px 18px;
+      box-shadow: var(--shadow-sm); margin-top: 16px;
+    }
+    .coupon-panel strong {
+      font-size: 14px; display: block; margin-bottom: 10px;
+    }
+    .coupon-form {
+      display: flex; gap: 8px; align-items: stretch;
+    }
+    .coupon-form input {
+      flex: 1; border: 1.5px solid var(--line); border-radius: 8px;
+      padding: 10px 12px; font-size: 13px; font-weight: 600;
+      text-transform: uppercase; min-height: 40px;
+      transition: border-color var(--transition);
+    }
+    .coupon-form input:focus {
+      outline: none; border-color: #6366f1;
+      box-shadow: 0 0 0 3px rgba(99,102,241,.08);
+    }
+    .coupon-form button {
+      white-space: nowrap;
+    }
+    .coupon-result {
+      margin-top: 10px; padding: 10px 12px;
+      border-radius: 8px; font-size: 12px; font-weight: 700;
+      display: none;
+    }
+    .coupon-result.success {
+      display: block; background: #ecfdf5; color: #065f46;
+      border: 1px solid #a7f3d0;
+    }
+    .coupon-result.error {
+      display: block; background: #fef2f2; color: #991b1b;
+      border: 1px solid #fecaca;
+    }
+    .coupon-result.info {
+      display: block; background: #eff6ff; color: #1e40af;
+      border: 1px solid #bfdbfe;
+    }
+    .coupon-detail {
+      margin-top: 8px; font-size: 12px; color: var(--muted);
+    }
+    .coupon-apply-row {
+      display: flex; gap: 8px; align-items: center; margin-top: 8px;
+    }
+    .coupon-apply-row select {
+      flex: 1; border: 1px solid var(--line); border-radius: 8px;
+      padding: 8px 10px; font-size: 12px; font-weight: 700;
+      min-height: 36px;
+    }
+    .dark-mode .coupon-panel { background: #1e293b; border-color: #334155; }
+    .dark-mode .coupon-form input { background: #0f172a; color: #f1f5f9; border-color: #334155; }
+    .dark-mode .coupon-result.success { background: #064e3b; color: #6ee7b7; border-color: #065f46; }
+    .dark-mode .coupon-result.error { background: #450a0a; color: #fca5a5; border-color: #7f1d1d; }
+    .dark-mode .coupon-result.info { background: #1e1b4b; color: #a5b4fc; border-color: #3730a3; }
   </style>
 </head>
 <body>
@@ -660,6 +826,7 @@
             <div class="filters">
               <input id="search" placeholder="🔍 Buscar cliente o tiquete">
               <select id="statusFilter"><option value="">Todos los estados</option></select>
+              <button class="btn light" id="viewToggle" type="button">🗂️ Ver tablero</button>
             </div>
           </div>
 
@@ -682,6 +849,9 @@
 
           <!-- Mobile cards (rendered by app.js) -->
           <div class="order-cards" id="orderCards"></div>
+
+          <!-- Kanban board (rendered by kanban-board.js, toggled) -->
+          <div class="kanban-board" id="kanbanBoard"></div>
         </div>
 
         <!-- Form panel (desktop sidebar / mobile drawer) -->
@@ -763,6 +933,22 @@
               <a class="btn light" id="receiptLive" href="#" target="_blank" rel="noopener">🌐 Ver Tiquete</a>
               <button class="btn light" id="copyMessage" type="button">📋 Copiar</button>
             </div>
+          </div>
+        </div>
+
+        <!-- Coupon Redemption Panel (operator tool) -->
+        <div class="coupon-panel" id="couponPanel">
+          <strong>🎫 Canjear Cupón</strong>
+          <div class="coupon-form">
+            <input type="text" id="couponCodeInput" placeholder="Código del cupón (ej: ABC123)" maxlength="12" autocomplete="off">
+            <button class="btn light" id="couponValidateBtn" type="button" onclick="CouponRedemption.validate()">Validar</button>
+          </div>
+          <div class="coupon-result" id="couponResult"></div>
+          <div class="coupon-apply-row" id="couponApplyRow" style="display:none;">
+            <select id="couponOrderSelect">
+              <option value="">Seleccionar pedido...</option>
+            </select>
+            <button class="btn green" id="couponApplyBtn" type="button" onclick="CouponRedemption.redeem()">Aplicar</button>
           </div>
         </div>
 
@@ -849,8 +1035,9 @@
   </nav>
 
   <!-- ─── Scripts ────────────────────────────────────────────── -->
-  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <script src="/js/qrcode.min.js"></script>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
   <script src="/js/dark-mode.js"></script>
   <script src="/js/skeleton-loader.js"></script>
   <script src="/js/animated-counter.js"></script>
@@ -859,6 +1046,7 @@
   <script src="/js/mini-chart.js"></script>
   <script src="/js/onboarding.js"></script>
   <script src="/js/qr-payload.js"></script>
+  <script src="/js/kanban-board.js"></script>
   <script src="/app.js"></script>
   <script src="/js/scanner.js"></script>
 
@@ -928,8 +1116,144 @@
       }
     });
 
+    /* ─── Coupon Redemption Module ────────────────────────── */
+    var CouponRedemption = (function() {
+      var _validatedCoupon = null;
+
+      function showResult(msg, type) {
+        var el = document.getElementById('couponResult');
+        if (!el) return;
+        el.className = 'coupon-result ' + type;
+        el.innerHTML = msg;
+      }
+
+      function hideResult() {
+        var el = document.getElementById('couponResult');
+        if (el) { el.className = 'coupon-result'; el.innerHTML = ''; }
+        document.getElementById('couponApplyRow').style.display = 'none';
+        _validatedCoupon = null;
+      }
+
+      function populateOrderSelect() {
+        var select = document.getElementById('couponOrderSelect');
+        if (!select || typeof orders === 'undefined') return;
+        var normalizedOrders = orders.map(typeof normalize === 'function' ? normalize : function(o) { return o; });
+        var opts = '<option value="">Seleccionar pedido...</option>';
+        normalizedOrders.forEach(function(o) {
+          if (o.status !== 'CANCELLED') {
+            opts += '<option value="' + o.id + '">#' + o.order_number + ' — ' + (o.customer_name || 'Sin nombre') + '</option>';
+          }
+        });
+        select.innerHTML = opts;
+      }
+
+      async function validate() {
+        var input = document.getElementById('couponCodeInput');
+        var code = (input.value || '').trim().toUpperCase();
+        if (!code) {
+          showResult('Ingresa un código de cupón.', 'error');
+          return;
+        }
+
+        var btn = document.getElementById('couponValidateBtn');
+        btn.disabled = true;
+        btn.textContent = '...';
+
+        try {
+          var response = await (typeof authFetch === 'function' ? authFetch : fetch)('/api/validate-coupon?code=' + encodeURIComponent(code));
+          var data = await response.json();
+
+          if (data.valid && data.coupon) {
+            _validatedCoupon = data.coupon;
+            var typeLabel = { 'PERCENT': data.coupon.value + '% descuento', 'AMOUNT': '$' + data.coupon.value.toLocaleString() + ' descuento', 'FREE_DELIVERY': 'Domicilio gratis' };
+            var label = typeLabel[data.coupon.type] || data.coupon.type;
+            var expires = new Date(data.coupon.expires_at).toLocaleDateString('es-CO');
+            showResult('✅ Cupón válido: <strong>' + data.coupon.code + '</strong> — ' + label + '<div class="coupon-detail">Vence: ' + expires + '</div>', 'success');
+            populateOrderSelect();
+            document.getElementById('couponApplyRow').style.display = 'flex';
+          } else {
+            _validatedCoupon = null;
+            var errorMsg = data.error || 'Cupón no válido';
+            var errorMessages = {
+              'Coupon not found': '❌ Cupón no encontrado',
+              'Coupon already redeemed': '❌ Cupón ya fue canjeado',
+              'Coupon expired': '❌ Cupón expirado'
+            };
+            showResult(errorMessages[errorMsg] || '❌ ' + errorMsg, 'error');
+            document.getElementById('couponApplyRow').style.display = 'none';
+          }
+        } catch (err) {
+          showResult('❌ Error de conexión. Intenta de nuevo.', 'error');
+          document.getElementById('couponApplyRow').style.display = 'none';
+        } finally {
+          btn.disabled = false;
+          btn.textContent = 'Validar';
+        }
+      }
+
+      async function redeem() {
+        if (!_validatedCoupon) {
+          showResult('Valida un cupón primero.', 'error');
+          return;
+        }
+        var orderId = document.getElementById('couponOrderSelect').value;
+        if (!orderId) {
+          showResult('Selecciona un pedido para aplicar el cupón.', 'error');
+          return;
+        }
+
+        var btn = document.getElementById('couponApplyBtn');
+        btn.disabled = true;
+        btn.textContent = '...';
+
+        try {
+          var response = await (typeof authFetch === 'function' ? authFetch : fetch)('/api/redeem-coupon', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code: _validatedCoupon.code, order_id: orderId })
+          });
+          var data = await response.json();
+
+          if (data.redeemed) {
+            showResult('🎉 ¡Cupón canjeado exitosamente! Descuento aplicado al pedido.', 'success');
+            document.getElementById('couponApplyRow').style.display = 'none';
+            document.getElementById('couponCodeInput').value = '';
+            _validatedCoupon = null;
+            // Notify user with toast
+            if (typeof toast === 'function') toast('Cupón canjeado ✅');
+          } else {
+            showResult('❌ ' + (data.error || 'No se pudo canjear el cupón'), 'error');
+          }
+        } catch (err) {
+          showResult('❌ Error de conexión. Intenta de nuevo.', 'error');
+        } finally {
+          btn.disabled = false;
+          btn.textContent = 'Aplicar';
+        }
+      }
+
+      // Allow Enter key to trigger validation
+      document.addEventListener('DOMContentLoaded', function() {
+        var input = document.getElementById('couponCodeInput');
+        if (input) {
+          input.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              validate();
+            }
+          });
+          // Clear result when user edits the code
+          input.addEventListener('input', function() {
+            hideResult();
+          });
+        }
+      });
+
+      return { validate: validate, redeem: redeem };
+    })();
+
     /* ─── Mobile cards render ─────────────────────────────── */
-    // Patch: after app.js renders, also render cards for mobile
+    // Patch: after app.js renders, also render cards for mobile and kanban board
     var _origRender = null;
     document.addEventListener('DOMContentLoaded', function() {
       // Wait for app.js to define render(), then patch it
@@ -940,6 +1264,7 @@
           window.render = function() {
             _origRender();
             renderOrderCards();
+            if (window.KanbanBoard) window.KanbanBoard.render();
           };
         } else {
           setTimeout(patchRender, 100);
@@ -967,6 +1292,7 @@
 
       var statusFlow = (typeof businessConfig !== 'undefined' && businessConfig.status_flow_config) || [];
       var money = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
+      var loyaltySummaries = window._loyaltySummaries || {};
 
       container.innerHTML = visible.map(function(o) {
         var statusOptions = statusFlow.map(function(entry) {
@@ -977,11 +1303,18 @@
         var balanceClass = balance > 0 ? 'pending' : 'zero';
         var slug = typeof BUSINESS_SLUG !== 'undefined' ? BUSINESS_SLUG : 'majesty';
 
+        // Loyalty badge for mobile cards
+        var loyaltyBadgeHtml = '';
+        var loyaltyData = loyaltySummaries[o.customer_phone];
+        if (loyaltyData) {
+          loyaltyBadgeHtml = '<span class="badge loyalty-badge" title="Fidelidad: ' + loyaltyData.stamps_count + ' de ' + loyaltyData.stamps_target + ' sellos">🎟️ ' + loyaltyData.stamps_count + '/' + loyaltyData.stamps_target + '</span>';
+        }
+
         return [
           '<div class="order-card">',
           '  <div class="order-card-header">',
           '    <div>',
-          '      <div class="order-card-num">#' + o.order_number + '</div>',
+          '      <div class="order-card-num">#' + o.order_number + ' ' + loyaltyBadgeHtml + '</div>',
           '      <div class="order-card-info">',
           '        <div class="name">' + (o.customer_name || '') + '</div>',
           '        <div class="phone">' + (o.customer_phone || '') + '</div>',

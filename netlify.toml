@@ -11,3 +11,6 @@
   from = "/api/*"
   to = "/.netlify/functions/:splat"
   status = 200
+
+[functions."cron-reactivation"]
+  schedule = "0 14 * * *"

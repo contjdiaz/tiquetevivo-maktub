@@ -4,7 +4,7 @@
  * Network-first for API calls, cache-first for static resources.
  */
 
-const CACHE_NAME = 'tiquetevivo-v1';
+const CACHE_NAME = 'tiquetevivo-v2';
 const STATIC_ASSETS = [
   '/',
   '/app.html',
@@ -15,6 +15,7 @@ const STATIC_ASSETS = [
   '/js/qr-payload.js',
   '/js/qr-mode-selector.js',
   '/js/qr-renderer.js',
+  '/js/qrcode.min.js',
   '/js/status-poller.js',
   '/js/scanner.js',
   '/js/dark-mode.js',
@@ -24,6 +25,8 @@ const STATIC_ASSETS = [
   '/js/vertical-theming.js',
   '/js/onboarding.js',
   '/js/mini-chart.js',
+  '/js/loyalty-widget.js',
+  '/js/payment-button.js',
   '/manifest.json'
 ];
 
@@ -58,6 +61,9 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
+  // Only handle GET requests — Cache API does not support POST/PUT/DELETE
+  if (event.request.method !== 'GET') return;
+
   // API calls: network-first, no caching
   if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/.netlify/')) {
     event.respondWith(
@@ -75,15 +81,17 @@ self.addEventListener('fetch', (event) => {
   if (url.origin !== self.location.origin) {
     event.respondWith(
       fetch(event.request).then((response) => {
-        const clone = response.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+        if (response.status === 200) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+        }
         return response;
       }).catch(() => caches.match(event.request))
     );
     return;
   }
 
-  // Static assets: cache-first
+  // Static assets: cache-first with network fallback
   event.respondWith(
     caches.match(event.request).then((cached) => {
       if (cached) return cached;

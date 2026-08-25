@@ -787,6 +787,8 @@ async function doChangeOrderStatus(orderId, newStatus, deliveryPhoto) {
     toast("Estado actualizado en la nube");
   } catch (err) {
     toast(err.message);
+    // Kanban revert: repaint board from authoritative data after failed update
+    if (window.KanbanBoard) KanbanBoard.onStatusChangeFailed();
   }
 }
 
@@ -902,6 +904,13 @@ function render() {
     <tr>
       <td>
         <strong>#${o.order_number}</strong>
+        ${(() => {
+          const loyaltyData = window._loyaltySummaries && window._loyaltySummaries[o.customer_phone];
+          if (loyaltyData) {
+            return `<br><span class="badge loyalty-badge" title="Fidelidad: ${loyaltyData.stamps_count} de ${loyaltyData.stamps_target} sellos">🎟️ ${loyaltyData.stamps_count}/${loyaltyData.stamps_target}</span>`;
+          }
+          return '';
+        })()}
       </td>
       <td>${o.customer_name}<br><small>${o.customer_phone}</small></td>
       <td>
@@ -1062,8 +1071,23 @@ function createFieldInput(def) {
     }
 
     label.appendChild(select);
+  } else if (def.field_type === "textarea") {
+    // Multi-line text (e.g. product lists)
+    label.textContent = `${def.display_label}${requiredMark}`;
+
+    const textarea = document.createElement("textarea");
+    textarea.name = `custom_field_${def.field_key}`;
+    textarea.dataset.fieldKey = def.field_key;
+    textarea.dataset.fieldType = "textarea";
+    textarea.placeholder = def.display_label;
+    if (def.required) textarea.required = true;
+    if (def.default_value != null && def.default_value !== "") {
+      textarea.value = def.default_value;
+    }
+
+    label.appendChild(textarea);
   } else {
-    // Text, number, date, datetime
+    // Text, number, date, datetime, time
     label.textContent = `${def.display_label}${requiredMark}`;
 
     const input = document.createElement("input");
@@ -1081,6 +1105,9 @@ function createFieldInput(def) {
         break;
       case "datetime":
         input.type = "datetime-local";
+        break;
+      case "time":
+        input.type = "time";
         break;
       default: // text
         input.type = "text";
@@ -1125,6 +1152,7 @@ function collectCustomFieldValues() {
         break;
       case "date":
       case "datetime":
+      case "time":
         customFields[def.field_key] = element.value || null;
         break;
       case "select":
@@ -1163,6 +1191,8 @@ function buildCustomFieldsDisplay(order) {
       try {
         displayValue = new Date(value).toLocaleDateString("es-CO");
       } catch { displayValue = value; }
+    } else if (def.field_type === "textarea" && value) {
+      displayValue = String(value).replace(/\r?\n/g, " · ");
     }
 
     html.push(`<br><small style="color:var(--muted); font-size:11px;"><strong>${def.display_label}:</strong> ${displayValue}</small>`);
@@ -1280,9 +1310,20 @@ function recalcServiceTotal() {
 
 async function sync() {
   try {
-    const response = await authFetch(`/api/list-orders?slug=${BUSINESS_SLUG}`);
+    const response = await authFetch(`/api/list-orders?slug=${BUSINESS_SLUG}&include_loyalty=1`);
     if (!response.ok) throw new Error("No se pudo conectar. Seguimos en modo demo.");
-    orders = (await response.json()).map(normalize);
+    const responseData = await response.json();
+    // Handle wrapped response with loyalty_summaries or flat array (backward compat)
+    if (responseData.orders && responseData.loyalty_summaries) {
+      orders = responseData.orders.map(normalize);
+      window._loyaltySummaries = responseData.loyalty_summaries;
+    } else if (Array.isArray(responseData)) {
+      orders = responseData.map(normalize);
+      window._loyaltySummaries = {};
+    } else {
+      orders = (responseData.orders || responseData).map ? (responseData.orders || responseData).map(normalize) : [];
+      window._loyaltySummaries = responseData.loyalty_summaries || {};
+    }
     localStorage.setItem("tiquete_orders", JSON.stringify(orders));
     setDataStatus("Guardado en la nube");
     toast("Pedidos actualizados");
@@ -1379,6 +1420,9 @@ document.getElementById("orderForm").addEventListener("submit", async (event) =>
   body.total = Number(body.total);
   body.paid = Number(body.paid);
 
+  // Generate orderNumber on the frontend and send it to ensure consistency
+  body.orderNumber = String(Date.now()).slice(-6);
+
   // Collect custom field values into a custom_fields object
   body.custom_fields = collectCustomFieldValues();
 
@@ -1413,7 +1457,7 @@ document.getElementById("orderForm").addEventListener("submit", async (event) =>
     setDataStatus("Guardado en la nube");
   } catch (error) {
     const firstStatus = businessConfig.status_flow_config[0]?.status_key || "RECEIVED";
-    order = { ...body, id: "demo-" + Date.now(), order_number: String(Date.now()).slice(-6), balance: Math.max(0, body.total - body.paid), status: firstStatus };
+    order = { ...body, id: "demo-" + Date.now(), order_number: body.orderNumber, balance: Math.max(0, body.total - body.paid), status: firstStatus };
     setDataStatus("Demo activa");
     toast("Pedido guardado localmente. Revisa Supabase si querias guardarlo en la nube.");
   }

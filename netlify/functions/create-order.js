@@ -1,17 +1,42 @@
+import { randomUUID } from "crypto";
 import { getBusinessBySlug, getClientIp, json, parseBody, requireAuth, supabaseAdmin } from "./_utils.js";
 import { mirrorOrderToSheets } from "./_sheets.js";
 import { validatePhone, validateAmount, validateRequired, validateCustomFields, validateStatusInFlow } from "./_validators.js";
 import { sendWhatsAppMessage, buildFallbackLink, logWhatsAppMessage } from "./_whatsapp.js";
 import { getBusinessConfig } from "./_vertical-config.js";
 import { selectTemplate, renderTemplate } from "./_template-engine.js";
+import { validatePhoto, uploadPhoto } from "./_photo-storage.js";
 
 /**
- * Validates that a value is a base64 data URL for an image.
- * Accepts JPEG, PNG, GIF and WebP data URLs.
+ * Validates and formats order items for paid-plan businesses.
+ * Returns null if items are not provided or invalid.
  */
-function isImageDataUrl(value) {
-  if (typeof value !== "string") return false;
-  return /^data:image\/(jpeg|png|gif|webp);base64,/.test(value);
+function normalizeOrderItems(items, businessId) {
+  if (!Array.isArray(items) || items.length === 0) return null;
+  const normalized = [];
+  for (const item of items) {
+    const quantity = Number(item.quantity);
+    const unitPrice = Number(item.unitPrice || item.unit_price);
+    if (!item.itemType && !item.item_type && !item.description) continue;
+    if (!Number.isFinite(quantity) || quantity <= 0) continue;
+    if (!Number.isFinite(unitPrice) || unitPrice < 0) continue;
+    normalized.push({
+      business_id: businessId,
+      item_type: item.itemType || item.item_type || "prenda",
+      description: item.description || "",
+      quantity,
+      unit_price: unitPrice,
+      status: ["OK", "DAMAGED", "MISSING", "STAINED"].includes(item.status) ? item.status : "OK"
+    });
+  }
+  return normalized.length > 0 ? normalized : null;
+}
+
+function buildItemsText(items) {
+  if (!items || items.length === 0) return "";
+  return items
+    .map((i) => `${i.quantity}x ${i.item_type}${i.description ? ` (${i.description})` : ""}`)
+    .join(", ");
 }
 
 export const handler = async (event) => {
@@ -55,8 +80,11 @@ export const handler = async (event) => {
     }
 
     // --- Photo evidence: validate intake photo if provided ---
-    if (body.intakePhoto != null && !isImageDataUrl(body.intakePhoto)) {
-      return json(400, { error: true, message: "intakePhoto must be a base64 image data URL", field: "intakePhoto" });
+    if (body.intakePhoto != null) {
+      const photoValidation = validatePhoto(body.intakePhoto);
+      if (!photoValidation.valid) {
+        return json(400, { error: true, message: photoValidation.error, field: "intakePhoto" });
+      }
     }
 
     const supabase = supabaseAdmin();
@@ -142,6 +170,9 @@ export const handler = async (event) => {
 
     const orderNumber = body.orderNumber || String(Date.now()).slice(-6);
 
+    // Generate a unique, non-guessable ticket token for public ticket access
+    const ticket_token = randomUUID();
+
     const payload = {
       business_id: business.id,
       order_number: orderNumber,
@@ -151,22 +182,46 @@ export const handler = async (event) => {
       total: Number(body.total || 0),
       paid: Number(body.paid || 0),
       status: resolvedStatus,
-      custom_fields: customFields
+      custom_fields: customFields,
+      ticket_token
     };
 
     // Add optional columns only if values are provided
     if (body.dueDate) payload.due_date = body.dueDate;
 
-    // Add intake photo evidence if provided
+    // --- Photo upload to Supabase Storage (BEFORE creating order record) ---
     if (body.intakePhoto) {
-      payload.intake_photo_url = body.intakePhoto;
-      payload.intake_photo_taken_at = new Date().toISOString();
+      // Derive file extension from MIME type
+      const mimeMatch = body.intakePhoto.match(/^data:image\/([^;]+);base64,/);
+      const ext = mimeMatch ? mimeMatch[1].replace("jpeg", "jpg") : "jpg";
+      // Use a temporary order ID for the storage path (will use actual after insert)
+      const tempOrderId = randomUUID();
+      const storagePath = `${business.id}/${tempOrderId}/intake.${ext}`;
+
+      try {
+        const uploadResult = await uploadPhoto(supabase, body.intakePhoto, storagePath);
+        payload.intake_photo_url = uploadResult.path;
+        payload.intake_photo_taken_at = new Date().toISOString();
+      } catch (uploadError) {
+        // If upload fails, do NOT create the order record
+        return json(500, { error: true, message: "Photo upload failed" });
+      }
     }
 
     // Add intake digital confirmation if provided
     if (body.intakeConfirmed === true || body.intakeConfirmed === "true") {
       payload.intake_confirmed_at = new Date().toISOString();
       payload.intake_confirmed_ip = getClientIp(event);
+    }
+
+    // --- Structured items checklist (paid plan only) ---
+    let orderItems = null;
+    if (isPaid && body.items) {
+      orderItems = normalizeOrderItems(body.items, business.id);
+      if (orderItems) {
+        // Override items_text with generated summary for consistency
+        payload.items_text = buildItemsText(orderItems);
+      }
     }
 
     const { data, error } = await supabase
@@ -176,6 +231,12 @@ export const handler = async (event) => {
       .single();
 
     if (error) throw error;
+
+    // Insert order items if provided (paid plan)
+    if (orderItems && orderItems.length > 0) {
+      const itemsWithOrderId = orderItems.map((item) => ({ ...item, order_id: data.id }));
+      await supabase.from("order_items").insert(itemsWithOrderId);
+    }
 
     // Mirror to Google Sheets (fire and forget)
     mirrorOrderToSheets(data, business).catch(() => {});

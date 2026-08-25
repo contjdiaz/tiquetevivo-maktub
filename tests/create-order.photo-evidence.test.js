@@ -87,6 +87,20 @@ vi.mock("../netlify/functions/_template-engine.js", () => ({
   renderTemplate: vi.fn().mockReturnValue("Order confirmation")
 }));
 
+vi.mock("../netlify/functions/_photo-storage.js", () => ({
+  validatePhoto: vi.fn((dataUrl) => {
+    if (!dataUrl || typeof dataUrl !== "string") {
+      return { valid: false, error: "Photo data is required and must be a string" };
+    }
+    const match = dataUrl.match(/^data:image\/(jpeg|png|gif|webp);base64,(.+)$/);
+    if (!match) {
+      return { valid: false, error: "Invalid photo format. Expected a base64 data URL" };
+    }
+    return { valid: true, mimeType: `image/${match[1]}`, sizeBytes: 100 };
+  }),
+  uploadPhoto: vi.fn().mockResolvedValue({ path: "biz-photo-1/mock-order-id/intake.jpg" })
+}));
+
 import { handler } from "../netlify/functions/create-order.js";
 
 describe("Feature: photo-evidence on order creation", () => {
@@ -115,9 +129,10 @@ describe("Feature: photo-evidence on order creation", () => {
 
     expect(response.statusCode).toBe(201);
     expect(capturedPayload).not.toBeNull();
-    expect(capturedPayload.intake_photo_url).toBe(intakePhoto);
+    // Now stores the Supabase Storage path, not the raw base64
+    expect(capturedPayload.intake_photo_url).toBe("biz-photo-1/mock-order-id/intake.jpg");
     expect(capturedPayload.intake_photo_taken_at).toBeDefined();
-    expect(body.intake_photo_url).toBe(intakePhoto);
+    expect(body.intake_photo_url).toBe("biz-photo-1/mock-order-id/intake.jpg");
   });
 
   it("rejects invalid intakePhoto values", async () => {

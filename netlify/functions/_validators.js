@@ -302,6 +302,18 @@ export function validateCustomFields(values, definitions) {
         }
         break;
 
+      case 'time':
+        if (typeof value !== 'string' || !/^([01]\d|2[0-3]):[0-5]\d$/.test(value)) {
+          errors.push(`${display_label} must be a time in HH:MM format`);
+        }
+        break;
+
+      case 'textarea':
+        if (typeof value !== 'string') {
+          errors.push(`${display_label} must be a text`);
+        }
+        break;
+
       default:
         break;
     }

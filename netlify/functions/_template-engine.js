@@ -14,6 +14,40 @@ const GENERIC_FALLBACK_TEMPLATE =
   "📋 *{business_name}*\n\nOrden #{order_number}\nEstado: {status_label}";
 
 /**
+ * Default template for the `customer_reactivation` trigger.
+ * Sent to inactive customers with a personalized message and coupon link.
+ * Variables: {customer_name}, {last_service}, {days_inactive}, {coupon_link}, {business_name}
+ */
+const CUSTOMER_REACTIVATION_TEMPLATE =
+  "👋 ¡Hola {customer_name}!\n\n" +
+  "Te extrañamos en *{business_name}*. " +
+  "Han pasado {days_inactive} días desde tu último servicio de *{last_service}*.\n\n" +
+  "🎁 Tenemos un descuento especial para ti:\n{coupon_link}\n\n" +
+  "¡Te esperamos pronto! 💪";
+
+/**
+ * Default template for the `payment_confirmed` trigger.
+ * Sent when a payment is successfully applied to an order.
+ * Variables: {business_name}, {order_number}, {amount_paid}, {new_balance}
+ */
+const PAYMENT_CONFIRMED_TEMPLATE =
+  "✅ *{business_name}*\n\n" +
+  "¡Pago confirmado!\n" +
+  "Orden #{order_number}\n" +
+  "Monto pagado: ${amount_paid}\n" +
+  "Saldo pendiente: ${new_balance}\n\n" +
+  "¡Gracias por tu pago! 🙏";
+
+/**
+ * Registry of built-in default templates by trigger event.
+ * These are used as fallback when neither business nor vertical templates are configured.
+ */
+const BUILTIN_TEMPLATES = {
+  customer_reactivation: CUSTOMER_REACTIVATION_TEMPLATE,
+  payment_confirmed: PAYMENT_CONFIRMED_TEMPLATE
+};
+
+/**
  * Selects the appropriate template for a trigger event.
  * Priority: business override > vertical default > generic fallback.
  *
@@ -33,7 +67,12 @@ export function selectTemplate(triggerEvent, businessTemplates, verticalTemplate
     return verticalTemplates[triggerEvent];
   }
 
-  // Priority 3: Generic fallback
+  // Priority 3: Built-in trigger template
+  if (BUILTIN_TEMPLATES[triggerEvent]) {
+    return BUILTIN_TEMPLATES[triggerEvent];
+  }
+
+  // Priority 4: Generic fallback
   return GENERIC_FALLBACK_TEMPLATE;
 }
 
@@ -63,7 +102,14 @@ export function renderTemplate(template, orderData, businessData) {
     items_text: order.items_text ?? order.itemsText ?? "",
     total: order.total != null ? String(order.total) : "",
     balance: order.balance != null ? String(order.balance) : "",
-    status_label: order.status_label ?? order.statusLabel ?? ""
+    status_label: order.status_label ?? order.statusLabel ?? "",
+    // Reactivation-specific placeholders
+    last_service: order.last_service ?? order.lastService ?? "",
+    days_inactive: order.days_inactive != null ? String(order.days_inactive) : "",
+    coupon_link: order.coupon_link ?? order.couponLink ?? "",
+    // Payment-specific placeholders
+    amount_paid: order.amount_paid != null ? String(order.amount_paid) : "",
+    new_balance: order.new_balance != null ? String(order.new_balance) : ""
   };
 
   // Replace all placeholders using a single regex pass

@@ -8,3 +8,27 @@ node_modules/
 .env
 .env.local
 .env.*.local
+
+# Test/coverage output
+coverage/
+*.lcov
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Docs & internal dev guides (not for production)
+docs/
+.kiro
+
+# Local testing docs with credentials — NEVER commit to production
+TEST_USERS.md
+GUIA_PRUEBA_LOCAL.md
+
+# Demo/seed scripts (contain hardcoded test passwords)
+scripts/seed-demo-data.js
+scripts/seed-operator.js

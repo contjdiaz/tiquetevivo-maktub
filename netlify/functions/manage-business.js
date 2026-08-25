@@ -1,4 +1,4 @@
-import { json, parseBody, supabaseAdmin } from "./_utils.js";
+import { json, parseBody, supabaseAdmin, requireAuth } from "./_utils.js";
 import { validatePhone } from "./_validators.js";
 import { getVerticalBySlug, applyVerticalDefaults } from "./_vertical-config.js";
 
@@ -135,6 +135,102 @@ async function handleUpdateService(supabase, business, body) {
 }
 
 /**
+ * Handles the update-loyalty-config action.
+ * Validates and updates the loyalty_config JSONB field on the business.
+ * Requirements: 11
+ */
+async function handleUpdateLoyaltyConfig(supabase, business, body) {
+  const { enabled, target } = body;
+
+  // Validate enabled field
+  if (enabled !== undefined && typeof enabled !== "boolean") {
+    return json(400, { error: true, message: "enabled must be a boolean", field: "enabled" });
+  }
+
+  // Validate target field
+  if (target !== undefined) {
+    if (!Number.isInteger(target) || target < 1 || target > 20) {
+      return json(400, { error: true, message: "target must be an integer between 1 and 20", field: "target" });
+    }
+  }
+
+  // At least one field must be provided
+  if (enabled === undefined && target === undefined) {
+    return json(400, { error: true, message: "At least one of 'enabled' or 'target' must be provided" });
+  }
+
+  // Merge with existing loyalty_config (preserve fields not being updated)
+  const currentConfig = business.loyalty_config || { enabled: true, target: 5 };
+  const updatedConfig = {
+    ...currentConfig,
+    ...(enabled !== undefined && { enabled }),
+    ...(target !== undefined && { target })
+  };
+
+  const { data, error } = await supabase
+    .from("businesses")
+    .update({ loyalty_config: updatedConfig })
+    .eq("id", business.id)
+    .select("loyalty_config")
+    .single();
+
+  if (error) throw error;
+  return json(200, { loyalty_config: data.loyalty_config });
+}
+
+/**
+ * Handles the update-reactivation-config action.
+ * Validates and updates the reactivation_config JSONB field on the business.
+ * Requirements: 12
+ */
+async function handleUpdateReactivationConfig(supabase, business, body) {
+  const { enabled, threshold_days, monthly_limit } = body;
+
+  // Validate enabled field
+  if (enabled !== undefined && typeof enabled !== "boolean") {
+    return json(400, { error: true, message: "enabled must be a boolean", field: "enabled" });
+  }
+
+  // Validate threshold_days field
+  if (threshold_days !== undefined) {
+    if (!Number.isInteger(threshold_days) || threshold_days < 7 || threshold_days > 90) {
+      return json(400, { error: true, message: "threshold_days must be an integer between 7 and 90", field: "threshold_days" });
+    }
+  }
+
+  // Validate monthly_limit field
+  if (monthly_limit !== undefined) {
+    if (!Number.isInteger(monthly_limit) || monthly_limit <= 0) {
+      return json(400, { error: true, message: "monthly_limit must be an integer greater than 0", field: "monthly_limit" });
+    }
+  }
+
+  // At least one field must be provided
+  if (enabled === undefined && threshold_days === undefined && monthly_limit === undefined) {
+    return json(400, { error: true, message: "At least one of 'enabled', 'threshold_days', or 'monthly_limit' must be provided" });
+  }
+
+  // Merge with existing reactivation_config (preserve fields not being updated)
+  const currentConfig = business.reactivation_config || { enabled: true, threshold_days: 30, monthly_limit: 50 };
+  const updatedConfig = {
+    ...currentConfig,
+    ...(enabled !== undefined && { enabled }),
+    ...(threshold_days !== undefined && { threshold_days }),
+    ...(monthly_limit !== undefined && { monthly_limit })
+  };
+
+  const { data, error } = await supabase
+    .from("businesses")
+    .update({ reactivation_config: updatedConfig })
+    .eq("id", business.id)
+    .select("reactivation_config")
+    .single();
+
+  if (error) throw error;
+  return json(200, { reactivation_config: data.reactivation_config });
+}
+
+/**
  * Handles the disable-service action.
  * Sets active: false on the service entry (soft-delete, no physical removal).
  * Requirements: 4.4, 4.5
@@ -168,12 +264,16 @@ export const handler = async (event) => {
   if (event.httpMethod !== "POST") return json(405, { error: "Method not allowed" });
 
   try {
+    const supabase = supabaseAdmin();
+
+    // --- Authentication & Authorization (Requirements 3.1, 3.2, 3.3, 3.4) ---
     const body = parseBody(event);
     const { action, business_id, phone } = body;
 
     const validActions = [
       "register", "deactivate", "reactivate",
-      "add-service", "update-service", "disable-service"
+      "add-service", "update-service", "disable-service",
+      "update-loyalty-config", "update-reactivation-config"
     ];
 
     // Validate action
@@ -186,6 +286,19 @@ export const handler = async (event) => {
       return json(400, { error: true, message: "business_id is required" });
     }
 
+    // For actions on existing businesses, require manage_business permission (owner/superadmin)
+    if (action !== "register") {
+      const authResult = await requireAuth(supabase, event, {
+        permission: "manage_business",
+        businessId: business_id
+      });
+      if (authResult.error) return authResult.error;
+    } else {
+      // For register action, require authentication (but no specific business permission)
+      const authResult = await requireAuth(supabase, event);
+      if (authResult.error) return authResult.error;
+    }
+
     // Validate phone if provided (Requirement 8.4)
     if (phone != null && phone !== "") {
       const phoneResult = validatePhone(phone);
@@ -193,8 +306,6 @@ export const handler = async (event) => {
         return json(400, { error: true, message: phoneResult.error, field: "phone" });
       }
     }
-
-    const supabase = supabaseAdmin();
 
     // Handle registration action (doesn't require existing business_id)
     if (action === "register") {
@@ -262,6 +373,14 @@ export const handler = async (event) => {
 
     if (action === "disable-service") {
       return await handleDisableService(supabase, business, body);
+    }
+
+    if (action === "update-loyalty-config") {
+      return await handleUpdateLoyaltyConfig(supabase, business, body);
+    }
+
+    if (action === "update-reactivation-config") {
+      return await handleUpdateReactivationConfig(supabase, business, body);
     }
 
     // --- Deactivate/Reactivate actions ---

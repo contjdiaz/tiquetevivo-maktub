@@ -450,6 +450,9 @@
         </div>
       </div>
 
+      <!-- Loyalty Stamp Widget (hidden until loyalty data loads and loyalty is enabled) -->
+      <div id="loyaltyWidgetContainer" style="display:none;"></div>
+
       <!-- Módulo de Recaudo Digital -->
       <div id="paymentMethodsBox" style="background:#f0fdf4; border:1px dashed #22c55e; border-radius:12px; padding:14px; display:grid; gap:8px;">
         <strong style="color:#15803d; font-size:14px;">💳 Medios de Pago / Transferencia Directa</strong>
@@ -460,6 +463,8 @@
         <a id="payProofBtn" class="btn-action" href="#" target="_blank" rel="noopener" style="background:#15803d; color:#fff; font-size:13px; padding:10px; margin-top:4px;">
           📲 Enviar Comprobante de Pago
         </a>
+        <!-- Payment gateway button container (rendered dynamically when balance > 0) -->
+        <div id="paymentButtonContainer"></div>
       </div>
 
       <a class="btn-action" id="waBtn" href="#" target="_blank" rel="noopener">
@@ -516,13 +521,16 @@
     </div>
   </div>
 
-  <!-- QR library -->
-  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <!-- QR library (local copy for reliability) -->
+  <script src="/js/qrcode.min.js"></script>
   <!-- New modular system -->
   <script src="/js/qr-payload.js"></script>
   <script src="/js/qr-mode-selector.js"></script>
   <script src="/js/qr-renderer.js"></script>
   <script src="/js/status-poller.js"></script>
+  <script src="/js/confetti.js"></script>
+  <script src="/js/loyalty-widget.js"></script>
+  <script src="/js/payment-button.js"></script>
 
   <script>
     const money = new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 });
@@ -531,6 +539,7 @@
     let currentStatus = null;
     let poller = null;
     let businessConfig = null; // Stores the vertical config (status_flow_config, emoji, plan, etc.)
+    let loyaltyData = null; // Stores loyalty summary from API response
 
     /**
      * Returns true when the loaded business has a paid plan.
@@ -603,6 +612,11 @@
           businessConfig = bizData;
         }
 
+        // Store loyalty data from API response
+        if (response && response.loyalty) {
+          loyaltyData = response.loyalty;
+        }
+
         // Render the stepper from business status_flow_config or fallback
         const statusFlow = (businessConfig && businessConfig.status_flow_config && businessConfig.status_flow_config.length > 0)
           ? businessConfig.status_flow_config
@@ -617,7 +631,7 @@
           document.getElementById("bizName").textContent = businessConfig.name;
         }
 
-        const order = list.find(o => String(o.order_number) === String(orderNumber) || String(o.id) === String(orderNumber)) || list[0];
+        const order = list.find(o => String(o.order_number) === String(orderNumber) || String(o.id) === String(orderNumber));
         
         if (order) {
           currentOrder = order;
@@ -636,7 +650,7 @@
           if (res.ok) {
             const list = await res.json();
             renderStepper(DEFAULT_STATUS_FLOW);
-            const order = list.find(o => String(o.order_number) === String(orderNumber) || String(o.id) === String(orderNumber)) || list[0];
+            const order = list.find(o => String(o.order_number) === String(orderNumber) || String(o.id) === String(orderNumber));
             if (order) {
               currentOrder = order;
               currentOrder.slug = currentOrder.slug || slug;
@@ -901,6 +915,9 @@
       const bCard = document.getElementById("balanceCard");
       if (balance > 0) bCard.classList.add("has-balance");
       else bCard.classList.remove("has-balance");
+
+      // Re-render payment button to reflect updated balance (hides when balance = 0)
+      renderPaymentButton(order);
     }
 
     /**
@@ -1307,6 +1324,69 @@
 
       const payProofMsg = `Hola, adjunto mi comprobante de pago para el Tiquete #${order.order_number || "0001"} por valor de ${money.format(balance)}.`;
       document.getElementById("payProofBtn").href = `https://wa.me/${waPhone}?text=${encodeURIComponent(payProofMsg)}`;
+
+      // Render loyalty stamp widget if enabled for this business
+      renderLoyaltyWidget();
+
+      // Render payment button if balance > 0 and gateway is configured
+      renderPaymentButton(order);
+    }
+
+    /**
+     * Render the loyalty stamp widget if loyalty is enabled for the business.
+     * Checks businessConfig.loyalty_config.enabled and uses loyaltyData from API.
+     * Hides widget if loyalty is disabled or no config available.
+     */
+    function renderLoyaltyWidget() {
+      var container = document.getElementById("loyaltyWidgetContainer");
+      if (!container) return;
+
+      // Check if loyalty is enabled for this business
+      var loyaltyEnabled = businessConfig
+        && businessConfig.loyalty_config
+        && businessConfig.loyalty_config.enabled === true;
+
+      if (!loyaltyEnabled) {
+        container.style.display = "none";
+        return;
+      }
+
+      // Build loyalty data with fallbacks
+      var data = {
+        stamps_count: (loyaltyData && typeof loyaltyData.stamps_count === "number") ? loyaltyData.stamps_count : 0,
+        stamps_target: (loyaltyData && typeof loyaltyData.stamps_target === "number")
+          ? loyaltyData.stamps_target
+          : (businessConfig.loyalty_config.target || 5),
+        reward_available: (loyaltyData && typeof loyaltyData.reward_available === "number") ? loyaltyData.reward_available : 0
+      };
+
+      // Show container and render widget
+      container.style.display = "block";
+      if (window.LoyaltyWidget && typeof window.LoyaltyWidget.render === "function") {
+        window.LoyaltyWidget.render(container, data);
+      }
+    }
+
+    /**
+     * Render the payment gateway button if balance > 0 and PaymentButton module is available.
+     * Uses the gateway configured on the business (WOMPI/BOLD) or falls back to env default.
+     * Hides the button when balance is 0.
+     */
+    function renderPaymentButton(order) {
+      var container = document.getElementById("paymentButtonContainer");
+      if (!container) return;
+
+      var balance = getBalance(order);
+      var orderId = order.id || order.order_id || "";
+      var gateway = (businessConfig && businessConfig.payments_gateway) || "";
+
+      if (window.PaymentButton && typeof window.PaymentButton.render === "function") {
+        window.PaymentButton.render(container, {
+          orderId: orderId,
+          balance: balance,
+          gateway: gateway
+        });
+      }
     }
 
     function renderFallback(orderNumber) {
@@ -1331,6 +1411,24 @@
     }
 
     loadTicket();
+
+    // Handle gateway redirect return: detect payment status from URL params on page load
+    (function handlePaymentReturn() {
+      if (window.PaymentButton && typeof window.PaymentButton.detectPaymentReturn === "function") {
+        var returnStatus = window.PaymentButton.detectPaymentReturn();
+        if (returnStatus) {
+          // Show a toast notification for the payment return status
+          var msgs = {
+            success: "✅ ¡Pago exitoso! Tu saldo se actualizará en unos momentos.",
+            pending: "⏳ Pago en procesamiento. El saldo se actualizará automáticamente.",
+            failure: "❌ El pago no fue aprobado. Puedes intentarlo de nuevo."
+          };
+          if (msgs[returnStatus]) {
+            showToast(msgs[returnStatus]);
+          }
+        }
+      }
+    })();
   </script>
 </body>
 </html>

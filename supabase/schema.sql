@@ -40,6 +40,7 @@ create table if not exists orders (
   intake_confirmed_ip text,
   delivery_confirmed_at timestamptz,
   delivery_confirmed_ip text,
+  ticket_token uuid not null default gen_random_uuid(),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique (business_id, order_number)
@@ -47,6 +48,7 @@ create table if not exists orders (
 
 create index if not exists orders_business_created_idx on orders (business_id, created_at desc);
 create index if not exists orders_status_idx on orders (status);
+create unique index if not exists idx_orders_ticket_token on orders(ticket_token);
 
 alter table businesses enable row level security;
 alter table orders enable row level security;
@@ -140,10 +142,49 @@ create trigger update_business_users_updated_at
   before update on business_users
   for each row execute function update_updated_at_column();
 
--- Seed default business
-insert into businesses (slug, name, phone, address, city, color)
-values ('majesty', 'Majesty Lavanderia', '+573001234567', 'Calle 50 #21-15', 'Medellin', '#18a058')
+-- Order items (structured garment checklist) — premium feature
+create table if not exists order_items (
+  id uuid primary key default gen_random_uuid(),
+  order_id uuid not null references orders(id) on delete cascade,
+  business_id uuid not null references businesses(id) on delete cascade,
+  item_type text not null default 'prenda',
+  description text,
+  quantity integer not null default 1 check (quantity > 0),
+  unit_price numeric(12,2) not null default 0 check (unit_price >= 0),
+  total_price numeric(12,2) generated always as (quantity * unit_price) stored,
+  status text not null default 'OK' check (status in ('OK', 'DAMAGED', 'MISSING', 'STAINED')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists order_items_order_idx on order_items (order_id);
+create index if not exists order_items_business_idx on order_items (business_id);
+
+alter table order_items enable row level security;
+
+drop policy if exists "users read own order_items" on order_items;
+create policy "users read own order_items" on order_items
+  for select
+  using (
+    exists (
+      select 1 from business_users bu
+      where bu.auth_user_id = auth.uid()
+        and bu.business_id = order_items.business_id
+        and bu.active = true
+    )
+  );
+
+drop trigger if exists update_order_items_updated_at on order_items;
+create trigger update_order_items_updated_at
+  before update on order_items
+  for each row execute function update_updated_at_column();
+
+-- Seed default businesses
+insert into businesses (slug, name, phone, address, city, color, plan)
+values ('majesty', 'Majesty Lavanderia', '+573001234567', 'Calle 50 #21-15', 'Medellin', '#18a058', 'free')
 on conflict (slug) do update set name = excluded.name;
 
-
+insert into businesses (slug, name, phone, address, city, color, plan)
+values ('majestypremium', 'Majesty Premium', '+573001234567', 'Calle 50 #21-15', 'Medellin', '#18a058', 'paid')
+on conflict (slug) do update set name = excluded.name;
 

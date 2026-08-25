@@ -201,6 +201,55 @@ describe('validateCustomFields', () => {
     });
   });
 
+  describe('time field type', () => {
+    const definitions = [
+      { field_key: 'hora', display_label: 'Hora de entrega', field_type: 'time', required: false }
+    ];
+
+    it('accepts a valid HH:MM time', () => {
+      expect(validateCustomFields({ hora: '14:30' }, definitions).valid).toBe(true);
+      expect(validateCustomFields({ hora: '00:00' }, definitions).valid).toBe(true);
+      expect(validateCustomFields({ hora: '23:59' }, definitions).valid).toBe(true);
+    });
+
+    it('rejects invalid hours and minutes', () => {
+      const result = validateCustomFields({ hora: '24:00' }, definitions);
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContain('Hora de entrega must be a time in HH:MM format');
+      expect(validateCustomFields({ hora: '12:60' }, definitions).valid).toBe(false);
+    });
+
+    it('rejects non-string and malformed values', () => {
+      expect(validateCustomFields({ hora: 1430 }, definitions).valid).toBe(false);
+      expect(validateCustomFields({ hora: '2pm' }, definitions).valid).toBe(false);
+      expect(validateCustomFields({ hora: '14:3' }, definitions).valid).toBe(false);
+    });
+  });
+
+  describe('textarea field type', () => {
+    const definitions = [
+      { field_key: 'productos', display_label: 'Productos', field_type: 'textarea', required: false }
+    ];
+
+    it('accepts multi-line strings', () => {
+      const result = validateCustomFields(
+        { productos: '2 kg de tomate\n1 libra de arracacha\n3 mangos' },
+        definitions
+      );
+      expect(result.valid).toBe(true);
+    });
+
+    it('accepts single-line strings', () => {
+      expect(validateCustomFields({ productos: '1 canasta familiar' }, definitions).valid).toBe(true);
+    });
+
+    it('rejects non-string values', () => {
+      const result = validateCustomFields({ productos: 42 }, definitions);
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContain('Productos must be a text');
+    });
+  });
+
   describe('edge cases', () => {
     it('returns valid for empty definitions array', () => {
       const result = validateCustomFields({ foo: 'bar' }, []);

@@ -4,14 +4,35 @@ import { validateStatus, validateAmount, validateStatusTransition, validateStatu
 import { sendWhatsAppMessage, buildFallbackLink, logWhatsAppMessage } from "./_whatsapp.js";
 import { getBusinessConfig } from "./_vertical-config.js";
 import { selectTemplate, renderTemplate } from "./_template-engine.js";
+import { getOrCreateLoyaltyProfile, addStamp, revertStamp } from "./_loyalty.js";
+import { validatePhoto, uploadPhoto } from "./_photo-storage.js";
 
-/**
- * Validates that a value is a base64 data URL for an image.
- * Accepts JPEG, PNG, GIF and WebP data URLs.
- */
-function isImageDataUrl(value) {
-  if (typeof value !== "string") return false;
-  return /^data:image\/(jpeg|png|gif|webp);base64,/.test(value);
+function normalizeOrderItems(items, businessId) {
+  if (!Array.isArray(items) || items.length === 0) return null;
+  const normalized = [];
+  for (const item of items) {
+    const quantity = Number(item.quantity);
+    const unitPrice = Number(item.unitPrice || item.unit_price);
+    if (!item.itemType && !item.item_type && !item.description) continue;
+    if (!Number.isFinite(quantity) || quantity <= 0) continue;
+    if (!Number.isFinite(unitPrice) || unitPrice < 0) continue;
+    normalized.push({
+      business_id: businessId,
+      item_type: item.itemType || item.item_type || "prenda",
+      description: item.description || "",
+      quantity,
+      unit_price: unitPrice,
+      status: ["OK", "DAMAGED", "MISSING", "STAINED"].includes(item.status) ? item.status : "OK"
+    });
+  }
+  return normalized.length > 0 ? normalized : null;
+}
+
+function buildItemsText(items) {
+  if (!items || items.length === 0) return "";
+  return items
+    .map((i) => `${i.quantity}x ${i.item_type}${i.description ? ` (${i.description})` : ""}`)
+    .join(", ");
 }
 
 export const handler = async (event) => {
@@ -149,8 +170,11 @@ export const handler = async (event) => {
     }
 
     // --- Photo evidence: validate delivery photo if provided ---
-    if (body.deliveryPhoto != null && !isImageDataUrl(body.deliveryPhoto)) {
-      return json(400, { error: true, message: "deliveryPhoto must be a base64 image data URL", field: "deliveryPhoto" });
+    if (body.deliveryPhoto != null) {
+      const photoValidation = validatePhoto(body.deliveryPhoto);
+      if (!photoValidation.valid) {
+        return json(400, { error: true, message: photoValidation.error, field: "deliveryPhoto" });
+      }
     }
 
     if (validationErrors.length > 0) {
@@ -187,9 +211,26 @@ export const handler = async (event) => {
       updatePayload.custom_fields = { ...existingCustom, ...body.custom_fields };
     }
 
-    // Add delivery photo evidence if provided
+    // --- Photo upload to Supabase Storage (BEFORE updating order record) ---
+    let deliveryPhotoPath = null;
     if (body.deliveryPhoto) {
-      updatePayload.delivery_photo_url = body.deliveryPhoto;
+      // Derive file extension from MIME type
+      const mimeMatch = body.deliveryPhoto.match(/^data:image\/([^;]+);base64,/);
+      const ext = mimeMatch ? mimeMatch[1].replace("jpeg", "jpg") : "jpg";
+      const storagePath = `${business.id}/${orderId}/delivery.${ext}`;
+
+      try {
+        const uploadResult = await uploadPhoto(supabase, body.deliveryPhoto, storagePath);
+        deliveryPhotoPath = uploadResult.path;
+      } catch (uploadError) {
+        // If upload fails, do NOT update the order record
+        return json(500, { error: true, message: "Photo upload failed" });
+      }
+    }
+
+    // Add delivery photo evidence if uploaded successfully
+    if (deliveryPhotoPath) {
+      updatePayload.delivery_photo_url = deliveryPhotoPath;
       updatePayload.delivery_photo_taken_at = new Date().toISOString();
     }
 
@@ -205,7 +246,16 @@ export const handler = async (event) => {
       updatePayload.delivery_confirmed_ip = getClientIp(event);
     }
 
-    if (Object.keys(updatePayload).length === 0) {
+    // --- Structured items checklist (paid plan only) ---
+    let orderItems = null;
+    if (isPaid && body.items) {
+      orderItems = normalizeOrderItems(body.items, business.id);
+      if (orderItems) {
+        updatePayload.items_text = buildItemsText(orderItems);
+      }
+    }
+
+    if (Object.keys(updatePayload).length === 0 && !orderItems) {
       return json(400, { error: true, message: "No fields provided to update" });
     }
 
@@ -218,8 +268,67 @@ export const handler = async (event) => {
 
     if (error) throw error;
 
+    // Replace order items if provided (paid plan)
+    if (orderItems && orderItems.length > 0) {
+      await supabase.from("order_items").delete().eq("order_id", orderId);
+      const itemsWithOrderId = orderItems.map((item) => ({ ...item, order_id: orderId }));
+      await supabase.from("order_items").insert(itemsWithOrderId);
+    }
+
     // Mirror to sheets (fire-and-forget)
     mirrorOrderToSheets(data, business).catch(() => {});
+
+    // --- Loyalty stamp logic (fire-and-log: never fails the status update) ---
+    if (updatePayload.status && data.customer_phone) {
+      try {
+        const loyaltyEnabled = business.loyalty_config?.enabled !== false;
+        if (loyaltyEnabled) {
+          const isLastStatus = statusFlow.length > 0
+            ? statusFlow.findIndex(
+                entry => entry.status_key.toUpperCase() === updatePayload.status.toUpperCase()
+              ) === statusFlow.length - 1
+            : updatePayload.status === "DELIVERED";
+
+          const isCancelled = updatePayload.status === "CANCELLED";
+
+          if (isLastStatus) {
+            // Order reached final delivery status → add stamp
+            const profileResult = await getOrCreateLoyaltyProfile(supabase, data.customer_phone);
+            if (profileResult.success) {
+              const stampResult = await addStamp(
+                supabase,
+                profileResult.profile.id,
+                orderId,
+                business.id
+              );
+              if (!stampResult.success) {
+                console.error("[Loyalty] addStamp error:", stampResult.error);
+              }
+            } else {
+              console.error("[Loyalty] getOrCreateLoyaltyProfile error:", profileResult.error);
+            }
+          } else if (isCancelled) {
+            // Order cancelled → revert stamp if one was previously given
+            const profileResult = await getOrCreateLoyaltyProfile(supabase, data.customer_phone);
+            if (profileResult.success) {
+              const revertResult = await revertStamp(
+                supabase,
+                profileResult.profile.id,
+                orderId
+              );
+              if (!revertResult.success) {
+                console.error("[Loyalty] revertStamp error:", revertResult.error);
+              }
+            } else {
+              console.error("[Loyalty] getOrCreateLoyaltyProfile error:", profileResult.error);
+            }
+          }
+        }
+      } catch (loyaltyError) {
+        // Loyalty errors never fail the status update (fire-and-log pattern)
+        console.error("[Loyalty] Unexpected error:", loyaltyError.message || loyaltyError);
+      }
+    }
 
     // --- WhatsApp notification on status change using Template Engine ---
     const newStatus = updatePayload.status;

@@ -27,7 +27,7 @@ export const handler = async (event) => {
     const expectedPass = process.env.ADMIN_PASSWORD;
 
     if (!expectedPass) {
-      return json(500, { error: "Admin password not configured on server" });
+      return json(500, { error: "Admin not configured" });
     }
 
     // Timing-safe comparison

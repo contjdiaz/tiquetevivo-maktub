@@ -18,7 +18,8 @@
     'print-center':{ accent: '#64748b', accentDark: '#475569', accentLight: '#f8fafc' },
     'salon':       { accent: '#ec4899', accentDark: '#db2777', accentLight: '#fdf2f8' },
     'gym-locker':  { accent: '#14b8a6', accentDark: '#0d9488', accentLight: '#f0fdfa' },
-    'nursery':     { accent: '#22c55e', accentDark: '#16a34a', accentLight: '#f0fdf4' }
+    'nursery':     { accent: '#22c55e', accentDark: '#16a34a', accentLight: '#f0fdf4' },
+    'domicilios':  { accent: '#84cc16', accentDark: '#65a30d', accentLight: '#f7fee7' }
   };
 
   /**

@@ -127,6 +127,26 @@ vi.mock("../netlify/functions/_template-engine.js", () => ({
   renderTemplate: vi.fn().mockReturnValue("Delivered message")
 }));
 
+vi.mock("../netlify/functions/_photo-storage.js", () => ({
+  validatePhoto: vi.fn((input) => {
+    if (!input || typeof input !== "string") {
+      return { valid: false, error: "Photo data is required and must be a string" };
+    }
+    const match = input.match(/^data:([^;]+);base64,(.+)$/);
+    if (!match) {
+      return { valid: false, error: "Invalid photo format. Expected a base64 data URL" };
+    }
+    const mimeType = match[1].toLowerCase();
+    const allowed = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+    if (!allowed.includes(mimeType)) {
+      return { valid: false, error: "Unsupported image format. Accepted: JPEG, PNG, GIF, WebP" };
+    }
+    return { valid: true, mimeType, sizeBytes: 1024 };
+  }),
+  uploadPhoto: vi.fn().mockResolvedValue({ path: "biz-photo-1/order-photo-123/delivery.jpg" }),
+  getSignedPhotoUrl: vi.fn().mockResolvedValue("https://storage.example.com/signed-url")
+}));
+
 import { handler } from "../netlify/functions/update-order.js";
 
 describe("Feature: photo-evidence on order delivery", () => {
@@ -153,9 +173,9 @@ describe("Feature: photo-evidence on order delivery", () => {
 
     expect(response.statusCode).toBe(200);
     expect(capturedPayload).not.toBeNull();
-    expect(capturedPayload.delivery_photo_url).toBe(deliveryPhoto);
+    expect(capturedPayload.delivery_photo_url).toBe("biz-photo-1/order-photo-123/delivery.jpg");
     expect(capturedPayload.delivery_photo_taken_at).toBeDefined();
-    expect(body.delivery_photo_url).toBe(deliveryPhoto);
+    expect(body.delivery_photo_url).toBe("biz-photo-1/order-photo-123/delivery.jpg");
   });
 
   it("rejects invalid deliveryPhoto values", async () => {
