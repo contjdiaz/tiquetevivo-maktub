@@ -826,17 +826,20 @@
 
         <!-- Orders panel -->
         <div class="panel">
-          <div class="toolbar">
-            <strong>Órdenes recientes</strong>
-            <div class="filters">
-              <input id="search" placeholder="🔍 Buscar cliente o tiquete">
-              <select id="statusFilter"><option value="">Todos los estados</option></select>
-              <button class="btn light" id="viewToggle" type="button">🗂️ Ver tablero</button>
+          <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-3">
+            <div>
+              <strong class="text-lg font-extrabold">Órdenes recientes</strong>
+              <div class="text-sm text-slate-500">Últimas entradas y filtros rápidos</div>
+            </div>
+            <div class="flex items-center gap-2 w-full md:w-auto">
+              <input id="search" placeholder="🔍 Buscar cliente o tiquete" class="flex-1 md:w-64 px-3 py-2 border border-slate-200 rounded-md bg-white" />
+              <select id="statusFilter" class="px-3 py-2 border border-slate-200 rounded-md bg-white"><option value="">Todos los estados</option></select>
+              <button id="viewToggle" type="button" class="ml-1 inline-flex items-center gap-2 bg-white text-slate-900 border border-slate-200 px-3 py-2 rounded-md font-bold">🗂️ Ver tablero</button>
             </div>
           </div>
 
           <!-- Desktop table -->
-          <div class="table-wrap">
+          <div class="table-wrap bg-white">
             <table>
               <thead>
                 <tr>
@@ -853,7 +856,7 @@
           </div>
 
           <!-- Mobile cards (rendered by app.js) -->
-          <div class="order-cards" id="orderCards"></div>
+          <div class="order-cards grid gap-3" id="orderCards"></div>
 
           <!-- Kanban board (rendered by kanban-board.js, toggled) -->
           <div class="kanban-board" id="kanbanBoard"></div>
