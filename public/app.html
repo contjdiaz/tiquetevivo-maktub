@@ -1348,47 +1348,52 @@
         }).join('') + '<option value="CANCELLED"' + (o.status === 'CANCELLED' ? ' selected' : '') + '>Cancelado</option>';
 
         var balance = Number(o.balance || 0);
-        var balanceClass = balance > 0 ? 'pending' : 'zero';
+        var balanceClass = balance > 0 ? 'text-red-600' : 'text-emerald-700';
         var slug = typeof BUSINESS_SLUG !== 'undefined' ? BUSINESS_SLUG : 'majesty';
 
-        // Loyalty badge for mobile cards
+        // Loyalty badge for mobile cards (Tailwind style)
         var loyaltyBadgeHtml = '';
         var loyaltyData = loyaltySummaries[o.customer_phone];
         if (loyaltyData) {
-          loyaltyBadgeHtml = '<span class="badge loyalty-badge" title="Fidelidad: ' + loyaltyData.stamps_count + ' de ' + loyaltyData.stamps_target + ' sellos">🎟️ ' + loyaltyData.stamps_count + '/' + loyaltyData.stamps_target + '</span>';
+          loyaltyBadgeHtml = '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-extrabold bg-amber-50 text-amber-600 ml-2" title="Fidelidad: ' + loyaltyData.stamps_count + ' de ' + loyaltyData.stamps_target + ' sellos">🎟️ ' + loyaltyData.stamps_count + '/' + loyaltyData.stamps_target + '</span>';
         }
 
-        // Delivery link button: visible only when order has delivery address and status is not DELIVERED/CANCELLED
+        // Delivery link button
         var deliveryLinkBtnHtml = '';
         var hasDeliveryAddress = o.custom_fields && (o.custom_fields.direccion || o.custom_fields.delivery_address || o.custom_fields.address || o.custom_fields.direccion_entrega);
         var isFinalOrCancelled = o.status === 'CANCELLED' || (typeof isDeliveredStatus === 'function' && isDeliveredStatus(o.status));
         if (hasDeliveryAddress && !isFinalOrCancelled) {
-          deliveryLinkBtnHtml = '<button class="btn light btn-delivery-link" data-order-id="' + o.id + '" onclick="DeliveryLinkModal.open(\'' + o.id + '\')" type="button">🚚 Link Entrega</button>';
+          deliveryLinkBtnHtml = '<button class="inline-flex items-center gap-2 bg-white text-slate-900 border border-slate-200 px-3 py-1 rounded-md font-bold" data-order-id="' + o.id + '" onclick="DeliveryLinkModal.open(\'' + o.id + '\')" type="button">🚚 Link Entrega</button>';
         }
 
         return [
-          '<div class="order-card">',
-          '  <div class="order-card-header">',
-          '    <div>',
-          '      <div class="order-card-num">#' + o.order_number + ' ' + loyaltyBadgeHtml + '</div>',
-          '      <div class="order-card-info">',
-          '        <div class="name">' + (o.customer_name || '') + '</div>',
-          '        <div class="phone">' + (o.customer_phone || '') + '</div>',
+          '<div class="bg-white border border-slate-100 rounded-lg p-4 shadow-sm">',
+          '  <div class="flex justify-between items-start gap-4">',
+          '    <div class="flex-1">',
+          '      <div class="flex items-center">',
+          '        <div class="text-lg font-extrabold">#' + o.order_number + '</div>',
+          '        ' + loyaltyBadgeHtml,
+          '      </div>',
+          '      <div class="mt-2">',
+          '        <div class="font-semibold text-sm">' + (o.customer_name || '—') + '</div>',
+          '        <div class="text-xs text-slate-500">' + (o.customer_phone || '—') + '</div>',
           '      </div>',
           '    </div>',
-          '    <div class="order-card-status">',
-          '      <select onchange="changeOrderStatus(\'' + o.id + '\', this.value)">' + statusOptions + '</select>',
+          '    <div class="w-36">',
+          '      <select class="w-full border border-slate-200 rounded-md px-2 py-1 text-sm font-bold" onchange="changeOrderStatus(\'' + o.id + '\', this.value)">' + statusOptions + '</select>',
           '    </div>',
           '  </div>',
-          '  <div class="order-card-detail">' + (o.items_text || '') + '</div>',
-          '  <div class="order-card-service" style="font-size:12px; color:#6366f1; font-weight:700;">' + (o.custom_fields && o.custom_fields.service_type ? '🧺 ' + o.custom_fields.service_type : '') + '</div>',
-          '  <div class="order-card-confirmations" style="font-size:12px;">' + (typeof buildConfirmationDisplay === 'function' ? buildConfirmationDisplay(o) : '') + '</div>',
-          '  <div class="order-card-balance ' + balanceClass + '">Saldo: ' + money.format(balance) + '</div>',
-          '  <div class="order-card-actions">',
-          '    <button class="btn green" onclick="openQrModal(\'' + o.order_number + '\')" type="button">📸 QR</button>',
-          '    <a class="btn light" href="' + (typeof buildWaLink === 'function' ? buildWaLink(o) : '#') + '" target="_blank" rel="noopener">📱 WhatsApp</a>',
-          '    <a class="btn light" href="/tiquete.html?number=' + o.order_number + '&slug=' + slug + '" target="_blank" rel="noopener">🌐 Ver</a>',
-          '    ' + deliveryLinkBtnHtml,
+          '  <div class="mt-3 text-sm text-slate-700">' + (o.items_text || '') + '</div>',
+          '  <div class="mt-2 text-xs font-bold text-indigo-600">' + (o.custom_fields && o.custom_fields.service_type ? '🧺 ' + o.custom_fields.service_type : '') + '</div>',
+          '  <div class="mt-2 text-xs text-slate-600">' + (typeof buildConfirmationDisplay === 'function' ? buildConfirmationDisplay(o) : '') + '</div>',
+          '  <div class="mt-3 flex items-center justify-between">',
+          '    <div class="font-extrabold ' + balanceClass + '">Saldo: ' + money.format(balance) + '</div>',
+          '    <div class="flex items-center gap-2">',
+          '      <button class="inline-flex items-center gap-2 bg-emerald-600 text-white px-3 py-1 rounded-md font-bold" onclick="openQrModal(\'' + o.order_number + '\')" type="button">📸 QR</button>',
+          '      <a class="inline-flex items-center gap-2 bg-white text-slate-900 border border-slate-200 px-3 py-1 rounded-md font-bold" href="' + (typeof buildWaLink === 'function' ? buildWaLink(o) : '#') + '" target="_blank" rel="noopener">📱 WhatsApp</a>',
+          '      <a class="inline-flex items-center gap-2 bg-white text-slate-900 border border-slate-200 px-3 py-1 rounded-md font-bold" href="/tiquete.html?number=' + o.order_number + '&slug=' + slug + '" target="_blank" rel="noopener">🌐 Ver</a>',
+          '      ' + deliveryLinkBtnHtml,
+          '    </div>',
           '  </div>',
           '</div>'
         ].join('');
