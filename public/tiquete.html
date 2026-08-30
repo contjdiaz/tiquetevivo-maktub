@@ -363,10 +363,10 @@
   <div class="offline-bar" id="offlineBar">⚠️ Sin conexión — reintentando...</div>
 
   <div class="ticket-card mx-auto w-full max-w-md" id="card">
-    <div class="header">
-      <div class="brand-badge"><span id="bizName">Maktub Laundry and Care</span> 🐧</div>
-      <h1 id="ticketNumber">Tiquete #----</h1>
-      <p id="bizPhone">+57 300 000 0000</p>
+    <div class="header bg-slate-900 text-white p-6 text-center relative">
+      <div class="brand-badge inline-flex items-center gap-2 bg-white/10 px-3 py-1 rounded-full text-sm font-extrabold"><span id="bizName">Maktub Laundry and Care</span> 🐧</div>
+      <h1 id="ticketNumber" class="mt-3 text-2xl sm:text-3xl font-extrabold">Tiquete #----</h1>
+      <p id="bizPhone" class="text-slate-300 mt-1">+57 300 000 0000</p>
     </div>
 
     <div class="eco-badge hidden sm:flex">
@@ -387,29 +387,29 @@
         <span class="value" id="orderDate">--/--/----</span>
       </div>
 
-      <div class="items-box">
-        <strong>Detalle del servicio</strong>
-        <p id="itemsText">...</p>
-        <div id="rackBadge" style="display:none; margin-top:8px; font-size:12px; font-weight:800; color:#1e40af; background:#dbeafe; padding:4px 8px; border-radius:6px; width:fit-content;">
+      <div class="items-box bg-slate-50 border border-slate-200 rounded-lg p-4">
+        <strong class="text-slate-600">Detalle del servicio</strong>
+        <p id="itemsText" class="mt-2 text-slate-800 font-bold">...</p>
+        <div id="rackBadge" class="hidden mt-2 text-xs font-extrabold text-emerald-800 bg-emerald-50 px-2 py-1 rounded inline-block">
           📍 Ubicación: <span id="rackText">Estante B-04</span>
         </div>
       </div>
 
-      <div id="delicateNotice" style="display:none; background:#fffbe8; border:1px solid #ffe58f; padding:10px 12px; border-radius:8px; font-size:12px; color:#873800; font-weight:700;">
-        ⚠️ **Prenda Delicada / Alto Valor**: Lavado con procedimiento especial. Riesgo de desgaste previo o decoloración aceptado.
+      <div id="delicateNotice" class="hidden bg-amber-50 border border-amber-200 px-3 py-2 rounded text-amber-800 text-sm font-extrabold">
+        ⚠️ <span class="sr-only">Aviso:</span> <span class="font-extrabold">Prenda Delicada / Alto Valor</span>: Lavado con procedimiento especial. Riesgo de desgaste previo o decoloración aceptado.
       </div>
 
       <!-- Photo evidence section (intake + delivery) -->
-      <div id="photoEvidenceBox" class="photo-evidence-box">
-        <strong>📸 Evidencia fotográfica</strong>
+      <div id="photoEvidenceBox" class="photo-evidence-box hidden">
+        <strong class="text-slate-600">📸 Evidencia fotográfica</strong>
         <div class="photo-grid">
-          <div class="photo-item" id="intakePhotoItem" style="display:none;">
-            <img id="intakePhotoImg" src="" alt="Foto al recibir">
+          <div class="photo-item" id="intakePhotoItem" class="hidden">
+            <img id="intakePhotoImg" class="w-full h-36 object-cover rounded border border-slate-200" src="" alt="Foto al recibir">
             <div class="photo-label">Al recibir</div>
             <div class="photo-time" id="intakePhotoTime"></div>
           </div>
-          <div class="photo-item" id="deliveryPhotoItem" style="display:none;">
-            <img id="deliveryPhotoImg" src="" alt="Foto al entregar">
+          <div class="photo-item" id="deliveryPhotoItem" class="hidden">
+            <img id="deliveryPhotoImg" class="w-full h-36 object-cover rounded border border-slate-200" src="" alt="Foto al entregar">
             <div class="photo-label">Al entregar</div>
             <div class="photo-time" id="deliveryPhotoTime"></div>
           </div>
@@ -417,16 +417,16 @@
       </div>
 
       <!-- Digital confirmations (intake + delivery) -->
-      <div id="intakeConfirmationBox" class="confirmation-box">
-        <strong>✋ Confirmación al recibir</strong>
-        <button id="intakeConfirmBtn" type="button">Confirmar recepción conforme</button>
-        <div class="confirmation-meta" id="intakeConfirmationMeta"></div>
+      <div id="intakeConfirmationBox" class="confirmation-box hidden">
+        <strong class="text-slate-800">✋ Confirmación al recibir</strong>
+        <button id="intakeConfirmBtn" type="button" class="mt-3 w-full bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold py-3 rounded">Confirmar recepción conforme</button>
+        <div class="confirmation-meta mt-2 text-sm text-slate-600" id="intakeConfirmationMeta"></div>
       </div>
 
-      <div id="deliveryConfirmationBox" class="confirmation-box">
-        <strong>✋ Confirmación al entregar</strong>
-        <button id="deliveryConfirmBtn" type="button">Confirmar entrega conforme</button>
-        <div class="confirmation-meta" id="deliveryConfirmationMeta"></div>
+      <div id="deliveryConfirmationBox" class="confirmation-box hidden">
+        <strong class="text-slate-800">✋ Confirmación al entregar</strong>
+        <button id="deliveryConfirmBtn" type="button" class="mt-3 w-full bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold py-3 rounded">Confirmar entrega conforme</button>
+        <div class="confirmation-meta mt-2 text-sm text-slate-600" id="deliveryConfirmationMeta"></div>
       </div>
 
       <!-- Dynamic custom fields section (rendered from business config) -->
@@ -446,10 +446,10 @@
         <span class="value" id="paidAmount">$0</span>
       </div>
 
-      <div class="balance-card" id="balanceCard">
+      <div class="balance-card bg-emerald-50 border-emerald-100 rounded-lg p-4" id="balanceCard">
         <div class="row">
-          <span class="label" style="color:inherit; font-weight:800;">Saldo Pendiente</span>
-          <span class="amount" id="balanceAmount">$0</span>
+          <span class="label font-extrabold text-slate-800">Saldo Pendiente</span>
+          <span class="amount text-2xl" id="balanceAmount">$0</span>
         </div>
       </div>
 
@@ -457,25 +457,25 @@
       <div id="loyaltyWidgetContainer" style="display:none;"></div>
 
       <!-- Módulo de Recaudo Digital -->
-      <div id="paymentMethodsBox" style="background:#f0fdf4; border:1px dashed #22c55e; border-radius:12px; padding:14px; display:grid; gap:8px;">
-        <strong style="color:#15803d; font-size:14px;">💳 Medios de Pago / Transferencia Directa</strong>
-        <div style="font-size:13px; color:#166534; line-height:1.5;">
+      <div id="paymentMethodsBox" class="bg-emerald-50 border-dashed border-2 border-emerald-200 rounded-lg p-4 grid gap-3">
+        <strong class="text-emerald-800 text-sm font-extrabold">💳 Medios de Pago / Transferencia Directa</strong>
+        <div class="text-emerald-800 text-sm leading-relaxed">
           • <strong>Nequi / Daviplata:</strong> 310 268 8991<br>
           • <strong>Bancolombia Ahorros:</strong> 123-456789-01
         </div>
-        <a id="payProofBtn" class="btn-action" href="#" target="_blank" rel="noopener" style="background:#15803d; color:#fff; font-size:13px; padding:10px; margin-top:4px;">
+        <a id="payProofBtn" class="mt-2 inline-flex items-center justify-center bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-2 px-3 rounded" href="#" target="_blank" rel="noopener">
           📲 Enviar Comprobante de Pago
         </a>
         <!-- Payment gateway button container (rendered dynamically when balance > 0) -->
         <div id="paymentButtonContainer"></div>
       </div>
 
-      <a class="btn-action" id="waBtn" href="#" target="_blank" rel="noopener">
+      <a id="waBtn" href="#" target="_blank" rel="noopener" class="inline-flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white font-extrabold py-3 px-4 rounded w-full">
         💬 Contactar por WhatsApp
       </a>
 
       <!-- Ready for Pickup notification banner -->
-      <div class="ready-banner" id="readyBanner">
+      <div class="ready-banner hidden bg-emerald-100 border-emerald-200 rounded-lg p-3 text-emerald-800 font-extrabold" id="readyBanner">
         🎉 ¡Tu pedido está LISTO para recoger! Muestra el QR en el mostrador.
       </div>
 
@@ -493,10 +493,10 @@
 
         <!-- QR Mode Tabs (4-mode tab bar) -->
         <div class="qr-tabs" id="qrTabsContainer">
-          <button class="qr-tab-btn" id="qrTabTrack" data-mode="track">📍 Rastrear</button>
-          <button class="qr-tab-btn" id="qrTabPickup" data-mode="pickup">🏪 Recoger</button>
-          <button class="qr-tab-btn" id="qrTabPay" data-mode="pay">💳 Pagar</button>
-          <button class="qr-tab-btn" id="qrTabReview" data-mode="review">⭐ Reseña</button>
+          <button class="qr-tab-btn px-3 py-2 text-xs font-extrabold bg-white border border-slate-200 rounded" id="qrTabTrack" data-mode="track">📍 Rastrear</button>
+          <button class="qr-tab-btn px-3 py-2 text-xs font-extrabold bg-white border border-slate-200 rounded" id="qrTabPickup" data-mode="pickup">🏪 Recoger</button>
+          <button class="qr-tab-btn px-3 py-2 text-xs font-extrabold bg-white border border-slate-200 rounded" id="qrTabPay" data-mode="pay">💳 Pagar</button>
+          <button class="qr-tab-btn px-3 py-2 text-xs font-extrabold bg-white border border-slate-200 rounded" id="qrTabReview" data-mode="review">⭐ Reseña</button>
         </div>
 
         <!-- Share & Save Buttons -->
