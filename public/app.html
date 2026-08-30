@@ -801,24 +801,24 @@
     <!-- ─── Main content ──────────────────────────────────── -->
     <main>
       <!-- Top bar -->
-      <div class="topbar">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
         <div>
-          <h1>Pedidos del día</h1>
-          <div class="sub">Cargando...</div>
+          <h1 class="text-2xl font-extrabold">Pedidos del día</h1>
+          <div class="text-sm text-slate-500">Cargando...</div>
         </div>
-        <div class="topbar-actions">
-          <button class="btn" id="scanQrBtn" type="button" onclick="Scanner.open()">📸 Escanear QR</button>
-          <button class="btn green" id="cashReportBtn" type="button">📊 Cierre de Caja</button>
-          <a class="btn light" href="index.html">🏠</a>
+        <div class="flex items-center gap-3">
+          <button class="inline-flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-md font-bold" id="scanQrBtn" type="button" onclick="Scanner.open()">📸 Escanear QR</button>
+          <button class="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-md font-bold" id="cashReportBtn" type="button">📊 Cierre de Caja</button>
+          <a class="inline-flex items-center gap-2 bg-white text-slate-900 border border-slate-200 px-3 py-2 rounded-md font-bold" href="index.html">🏠</a>
         </div>
       </div>
 
       <!-- Stats -->
-      <section class="stats">
-        <div class="stat"><span>Pedidos</span><strong id="statOrders">0</strong></div>
-        <div class="stat"><span>Ventas</span><strong id="statSales">$0</strong></div>
-        <div class="stat"><span>Saldos</span><strong id="statBalance">$0</strong></div>
-        <div class="stat"><span>Listos</span><strong id="statReady">0</strong></div>
+      <section class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-white border border-slate-100 rounded-lg p-4 shadow-sm"><span class="block text-xs text-slate-500 font-bold">Pedidos</span><strong id="statOrders" class="block text-2xl font-extrabold">0</strong></div>
+        <div class="bg-white border border-slate-100 rounded-lg p-4 shadow-sm"><span class="block text-xs text-slate-500 font-bold">Ventas</span><strong id="statSales" class="block text-2xl font-extrabold">$0</strong></div>
+        <div class="bg-white border border-slate-100 rounded-lg p-4 shadow-sm"><span class="block text-xs text-slate-500 font-bold">Saldos</span><strong id="statBalance" class="block text-2xl font-extrabold">$0</strong></div>
+        <div class="bg-white border border-slate-100 rounded-lg p-4 shadow-sm"><span class="block text-xs text-slate-500 font-bold">Listos</span><strong id="statReady" class="block text-2xl font-extrabold">0</strong></div>
       </section>
 
       <!-- Content layout -->
