@@ -745,18 +745,18 @@
 </head>
 <body>
   <!-- ─── Login overlay ─────────────────────────────────────────────── -->
-  <div id="loginOverlay" class="login-overlay hidden">
-    <div class="login-card">
+  <div id="loginOverlay" class="hidden fixed inset-0 z-50 flex items-center justify-center p-5 bg-gradient-to-b from-slate-900 to-slate-800">
+    <div class="w-full max-w-md bg-white rounded-xl p-8 shadow-2xl">
       <h2>🔐 Acceso al panel</h2>
       <p>Ingresa tus credenciales de operador para continuar.</p>
       <form id="loginForm">
-        <label>Correo electrónico
-          <input id="loginEmail" type="email" required placeholder="operador@negocio.com">
+        <label class="block">Correo electrónico
+          <input id="loginEmail" type="email" required placeholder="operador@negocio.com" class="mt-2 w-full border border-slate-200 rounded-md px-3 py-2">
         </label>
-        <label>Contraseña
-          <input id="loginPassword" type="password" required placeholder="••••••••">
+        <label class="block">Contraseña
+          <input id="loginPassword" type="password" required placeholder="••••••••" class="mt-2 w-full border border-slate-200 rounded-md px-3 py-2">
         </label>
-        <button id="loginBtn" type="submit">Ingresar</button>
+        <button id="loginBtn" type="submit" class="mt-4 w-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-3 rounded-md">Ingresar</button>
         <div id="loginError" class="login-error"></div>
       </form>
     </div>
@@ -783,8 +783,8 @@
         </div>
       </div>
 
-      <div id="userPill" class="user-pill" style="display:none;"></div>
-      <button id="logoutBtn" class="user-pill" type="button" style="display:none; margin-top:8px; cursor:pointer;">🚪 Cerrar sesión</button>
+      <div id="userPill" class="user-pill hidden"></div>
+      <button id="logoutBtn" class="user-pill hidden mt-2" type="button">🚪 Cerrar sesión</button>
 
       <div class="data-box">
         <label>Estado de datos</label>
