@@ -901,41 +901,44 @@ function render() {
     const serviceTypeHtml = serviceType ? `<br><small style="color:var(--blue); font-size:11px; font-weight:700;">🧺 ${serviceType}</small>` : "";
 
     return `
-    <tr>
-      <td>
-        <strong>#${o.order_number}</strong>
+    <tr class="hover:bg-slate-50">
+      <td class="px-4 py-3 align-top">
+        <div class="font-extrabold">#${o.order_number}</div>
         ${(() => {
           const loyaltyData = window._loyaltySummaries && window._loyaltySummaries[o.customer_phone];
           if (loyaltyData) {
-            return `<br><span class="badge loyalty-badge" title="Fidelidad: ${loyaltyData.stamps_count} de ${loyaltyData.stamps_target} sellos">🎟️ ${loyaltyData.stamps_count}/${loyaltyData.stamps_target}</span>`;
+            return `<div class="mt-1"><span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-extrabold bg-amber-50 text-amber-600" title="Fidelidad: ${loyaltyData.stamps_count} de ${loyaltyData.stamps_target} sellos">🎟️ ${loyaltyData.stamps_count}/${loyaltyData.stamps_target}</span></div>`;
           }
           return '';
         })()}
       </td>
-      <td>${o.customer_name}<br><small>${o.customer_phone}</small></td>
-      <td>
-        ${o.items_text}
+      <td class="px-4 py-3 align-top">
+        <div class="font-semibold">${o.customer_name || '—'}</div>
+        <div class="text-xs text-slate-500">${o.customer_phone || '—'}</div>
+      </td>
+      <td class="px-4 py-3 align-top">
+        <div class="text-sm text-slate-700">${o.items_text}</div>
         ${serviceTypeHtml}
         ${customFieldsHtml}
         ${confirmationHtml}
       </td>
-      <td>${money.format(o.balance)}</td>
-      <td>
-        <select style="border:1px solid var(--line); border-radius:6px; padding:4px 8px; font-size:12px; font-weight:700;" onchange="changeOrderStatus('${o.id}', this.value)">
+      <td class="px-4 py-3 align-top font-extrabold">${money.format(o.balance)}</td>
+      <td class="px-4 py-3 align-top">
+        <select class="border border-slate-200 rounded-md px-2 py-1 text-xs font-bold" onchange="changeOrderStatus('${o.id}', this.value)">
           ${rowStatusOptions}
         </select>
       </td>
-      <td>
-        <div style="display:flex; gap:4px;">
-          <button class="btn green" onclick="openQrModal('${o.order_number}')" title="Mostrar Código QR en Mostrador">📸 QR</button>
-          <a class="btn light" href="${buildWaLink(o)}" target="_blank" rel="noopener" title="Enviar por WhatsApp">WhatsApp</a>
-          <a class="btn light" href="/tiquete.html?number=${o.order_number}&slug=${BUSINESS_SLUG}" target="_blank" rel="noopener" title="Ver tiquete digital 🌐">🌐</a>
+      <td class="px-4 py-3 align-top">
+        <div class="flex gap-2 items-center">
+          <button class="inline-flex items-center gap-2 bg-emerald-600 text-white px-3 py-1 rounded-md font-bold" onclick="openQrModal('${o.order_number}')" title="Mostrar Código QR en Mostrador">📸 QR</button>
+          <a class="inline-flex items-center gap-2 bg-white text-slate-900 border border-slate-200 px-3 py-1 rounded-md font-bold" href="${buildWaLink(o)}" target="_blank" rel="noopener" title="Enviar por WhatsApp">WhatsApp</a>
+          <a class="inline-flex items-center gap-2 bg-white text-slate-900 border border-slate-200 px-3 py-1 rounded-md font-bold" href="/tiquete.html?number=${o.order_number}&slug=${BUSINESS_SLUG}" target="_blank" rel="noopener" title="Ver tiquete digital 🌐">🌐</a>
           ${(() => {
             const cf = o.custom_fields || {};
             const hasAddr = cf.direccion || cf.delivery_address || cf.address || cf.direccion_entrega;
             const isFinal = o.status === 'CANCELLED' || isDeliveredStatus(o.status);
             if (hasAddr && !isFinal) {
-              return `<button class="btn light btn-delivery-link" data-order-id="${o.id}" onclick="DeliveryLinkModal.open('${o.id}')" type="button" title="Generar link de entrega">🚚 Link Entrega</button>`;
+              return `<button class="inline-flex items-center gap-2 bg-white text-slate-900 border border-slate-200 px-3 py-1 rounded-md font-bold" data-order-id="${o.id}" onclick="DeliveryLinkModal.open('${o.id}')" type="button" title="Generar link de entrega">🚚 Link Entrega</button>`;
             }
             return '';
           })()}
