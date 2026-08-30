@@ -764,34 +764,36 @@
 
   <div class="shell">
     <!-- ─── Sidebar (desktop) ─────────────────────────────── -->
-    <aside>
+    <aside class="hidden lg:flex flex-col justify-between w-[260px] h-screen sticky top-0 p-6 bg-gradient-to-b from-slate-900 to-slate-800 text-white border-r border-white/5 overflow-auto">
       <div>
-        <div class="brand"><span class="mark">TV</span>TiqueteVivo</div>
+        <div class="flex items-center gap-3 text-lg font-extrabold mb-7"><span class="w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 text-white grid place-items-center font-black">TV</span>TiqueteVivo</div>
 
-        <div class="biz-selector">
-          <label class="biz-label">Negocio activo</label>
-          <select id="businessSelector" class="biz-select">
+        <div class="mb-6">
+          <label class="block text-xs uppercase text-slate-300 font-bold mb-2">Negocio activo</label>
+          <select id="businessSelector" class="w-full bg-transparent text-white font-bold rounded-md border border-white/12 px-3 py-2 appearance-none pr-10 bg-no-repeat bg-right">
             <option value="">Cargando...</option>
           </select>
         </div>
 
-        <div class="nav">
-          <button class="active" data-section="pedidos">📋 Pedidos</button>
-          <button data-section="caja" disabled title="Próximamente">💰 Caja</button>
-          <button data-section="clientes" disabled title="Próximamente">👥 Clientes</button>
-          <button data-section="ajustes" disabled title="Próximamente">⚙️ Ajustes</button>
-        </div>
+        <nav class="grid gap-2">
+          <button class="w-full text-left rounded-md px-3 py-2 text-white bg-slate-800/30 font-bold hover:bg-slate-800/40" data-section="pedidos">📋 Pedidos</button>
+          <button class="w-full text-left rounded-md px-3 py-2 text-slate-400 font-bold" data-section="caja" disabled title="Próximamente">💰 Caja</button>
+          <button class="w-full text-left rounded-md px-3 py-2 text-slate-400 font-bold" data-section="clientes" disabled title="Próximamente">👥 Clientes</button>
+          <button class="w-full text-left rounded-md px-3 py-2 text-slate-400 font-bold" data-section="ajustes" disabled title="Próximamente">⚙️ Ajustes</button>
+        </nav>
       </div>
 
-      <div id="userPill" class="user-pill hidden"></div>
-      <button id="logoutBtn" class="user-pill hidden mt-2" type="button">🚪 Cerrar sesión</button>
+      <div>
+        <div id="userPill" class="user-pill hidden"></div>
+        <button id="logoutBtn" class="user-pill hidden mt-3 w-full justify-center" type="button">🚪 Cerrar sesión</button>
 
-      <div class="data-box">
-        <label>Estado de datos</label>
-        <div class="data-status" id="dataStatus">Demo activa</div>
-        <div style="display:flex; gap:8px; margin-top:4px;">
-          <button class="btn light" id="syncBtn" type="button" style="flex:1;">🔄 Actualizar</button>
-          <button class="dark-toggle" id="darkModeToggle" type="button" onclick="DarkMode.toggle()" title="Modo oscuro">🌙</button>
+        <div class="mt-6">
+          <label class="block text-xs uppercase text-slate-300 font-bold">Estado de datos</label>
+          <div class="mt-2 bg-emerald-900/10 text-emerald-300 rounded-md px-3 py-2 font-bold text-sm text-center" id="dataStatus">Demo activa</div>
+          <div class="flex gap-2 mt-3">
+            <button id="syncBtn" class="flex-1 bg-white text-slate-900 rounded-md py-2 font-bold" type="button">🔄 Actualizar</button>
+            <button class="w-9 h-9 rounded-md bg-white/6 grid place-items-center" id="darkModeToggle" type="button" onclick="DarkMode.toggle()" title="Modo oscuro">🌙</button>
+          </div>
         </div>
       </div>
     </aside>
