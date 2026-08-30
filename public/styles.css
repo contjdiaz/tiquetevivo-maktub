@@ -1,4 +1,24 @@
 /* Placeholder styles.css — Tailwind CDN used for rapid preview.
-   Run `npm install` and `npm run build:css` to generate production CSS. */
+   For production, run the Tailwind build pipeline to generate a full `styles.css`:
 
-html, body { margin: 0; padding: 0; }
+   npm install
+   npm run build:css
+
+   The file below contains minimal base rules and a `.wrap` utility used across pages.
+*/
+
+:root{
+  --site-max:1160px;
+  --ink:#102033;
+}
+
+html,body{margin:0;padding:0}
+body{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink);background:#ffffff}
+
+/* Layout helper used in multiple templates */
+.wrap{width:min(var(--site-max),calc(100% - 32px));margin:0 auto;padding:0 16px}
+
+/* Small helpers to ensure buttons look reasonable if Tailwind is missing */
+.btn{display:inline-flex;align-items:center;justify-content:center;padding:10px 14px;border-radius:8px}
+
+/* End of minimal placeholder CSS */
