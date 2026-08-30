@@ -17,6 +17,9 @@
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="TiqueteVivo | Tu Recibo Digital 🌱">
   <meta name="twitter:description" content="Consulta el estado de tu pedido, saldo pendiente y contacta al negocio. 100% digital, cero papel.">
+  <link rel="stylesheet" href="/styles.css">
+  <!-- Tailwind CDN fallback for rapid preview (use build pipeline for production) -->
+  <script src="https://cdn.tailwindcss.com"></script>
   <style>
     :root {
       --primary: #18a058;
@@ -836,7 +839,7 @@
           payload = QrPayload.buildPickupPayload(order);
           break;
         case "pay":
-          payload = QrPayload.buildPayPayload(order);
+          payload = QrPayload.buildPayPayload(order, origin);
           break;
         case "review":
           payload = QrPayload.buildReviewPayload(order, origin);

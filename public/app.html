@@ -13,6 +13,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800;900&display=swap" rel="stylesheet">
   <title>TiqueteVivo App</title>
+  <link rel="stylesheet" href="/styles.css">
+  <!-- Tailwind CDN fallback for rapid preview (use build pipeline for production) -->
+  <script src="https://cdn.tailwindcss.com"></script>
   <style>
     /* ─── Variables ─────────────────────────────────────────── */
     :root {
@@ -1002,6 +1005,46 @@
     </div>
   </div>
 
+  <!-- ─── Delivery Link Modal ─────────────────────────────────── -->
+  <div class="modal" id="deliveryLinkModal" onclick="if(event.target===this)DeliveryLinkModal.close()">
+    <div class="modal-card" style="text-align:left;">
+      <strong style="font-size:18px; color:var(--ink);">🚚 Generar Link de Entrega</strong>
+
+      <!-- Order summary -->
+      <div id="deliveryLinkOrderSummary" style="background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:14px; font-size:13px; line-height:1.6;">
+        <div><strong>Cliente:</strong> <span id="dlCustomerName">--</span></div>
+        <div><strong>Dirección:</strong> <span id="dlAddress">--</span></div>
+        <div><strong>Saldo a cobrar:</strong> <span id="dlBalance">--</span></div>
+      </div>
+
+      <!-- Delivery person phone input -->
+      <label style="display:grid; gap:5px; font-size:12px; font-weight:700; color:#374151;">
+        Teléfono del domiciliario
+        <input id="dlDeliveryPhone" type="tel" placeholder="+57 300 123 4567" style="width:100%; border:1.5px solid var(--line); border-radius:10px; padding:11px 14px; min-height:44px;">
+      </label>
+
+      <!-- Generate button -->
+      <button class="btn green full" id="dlGenerateBtn" type="button" onclick="DeliveryLinkModal.generate()">
+        🔗 Generar Link
+      </button>
+
+      <!-- Generated link result (hidden initially) -->
+      <div id="dlResultSection" style="display:none;">
+        <div style="background:var(--soft-green); border:1px solid #a7f3d0; border-radius:10px; padding:12px; margin-top:4px;">
+          <div style="font-size:11px; font-weight:700; color:#065f46; margin-bottom:6px;">Link generado (expira en 2 horas):</div>
+          <div id="dlGeneratedUrl" style="word-break:break-all; font-size:12px; color:var(--ink); font-weight:600; background:#fff; padding:8px 10px; border-radius:6px; border:1px solid var(--line);"></div>
+        </div>
+        <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;">
+          <button class="btn light" id="dlCopyBtn" type="button" onclick="DeliveryLinkModal.copyLink()" style="flex:1;">📋 Copiar</button>
+          <button class="btn whatsapp" id="dlWhatsAppBtn" type="button" onclick="DeliveryLinkModal.sendWhatsApp()" style="flex:1;" disabled>📱 Enviar por WhatsApp</button>
+        </div>
+      </div>
+
+      <!-- Close button -->
+      <button class="btn light full" type="button" onclick="DeliveryLinkModal.close()" style="margin-top:4px;">Cerrar</button>
+    </div>
+  </div>
+
   <!-- ─── Mobile: Form Drawer ────────────────────────────────── -->
   <div class="form-drawer" id="formDrawer" onclick="if(event.target===this)closeFormDrawer()">
     <div class="form-drawer-sheet">
@@ -1310,6 +1353,14 @@
           loyaltyBadgeHtml = '<span class="badge loyalty-badge" title="Fidelidad: ' + loyaltyData.stamps_count + ' de ' + loyaltyData.stamps_target + ' sellos">🎟️ ' + loyaltyData.stamps_count + '/' + loyaltyData.stamps_target + '</span>';
         }
 
+        // Delivery link button: visible only when order has delivery address and status is not DELIVERED/CANCELLED
+        var deliveryLinkBtnHtml = '';
+        var hasDeliveryAddress = o.custom_fields && (o.custom_fields.direccion || o.custom_fields.delivery_address || o.custom_fields.address || o.custom_fields.direccion_entrega);
+        var isFinalOrCancelled = o.status === 'CANCELLED' || (typeof isDeliveredStatus === 'function' && isDeliveredStatus(o.status));
+        if (hasDeliveryAddress && !isFinalOrCancelled) {
+          deliveryLinkBtnHtml = '<button class="btn light btn-delivery-link" data-order-id="' + o.id + '" onclick="DeliveryLinkModal.open(\'' + o.id + '\')" type="button">🚚 Link Entrega</button>';
+        }
+
         return [
           '<div class="order-card">',
           '  <div class="order-card-header">',
@@ -1332,11 +1383,163 @@
           '    <button class="btn green" onclick="openQrModal(\'' + o.order_number + '\')" type="button">📸 QR</button>',
           '    <a class="btn light" href="' + (typeof buildWaLink === 'function' ? buildWaLink(o) : '#') + '" target="_blank" rel="noopener">📱 WhatsApp</a>',
           '    <a class="btn light" href="/tiquete.html?number=' + o.order_number + '&slug=' + slug + '" target="_blank" rel="noopener">🌐 Ver</a>',
+          '    ' + deliveryLinkBtnHtml,
           '  </div>',
           '</div>'
         ].join('');
       }).join('');
     }
+
+    /* ─── Delivery Link Modal Module ─────────────────────────── */
+    var DeliveryLinkModal = (function() {
+      var _currentOrder = null;
+      var _generatedUrl = '';
+
+      function getDeliveryAddress(order) {
+        var cf = order.custom_fields || {};
+        return cf.direccion || cf.delivery_address || cf.address || cf.direccion_entrega || '';
+      }
+
+      function open(orderId) {
+        var order = null;
+        if (typeof orders !== 'undefined') {
+          for (var i = 0; i < orders.length; i++) {
+            var normalized = typeof normalize === 'function' ? normalize(orders[i]) : orders[i];
+            if (normalized.id === orderId) { order = normalized; break; }
+          }
+        }
+        if (!order) { if (typeof toast === 'function') toast('Pedido no encontrado'); return; }
+
+        _currentOrder = order;
+        _generatedUrl = '';
+
+        // Populate summary
+        var moneyFmt = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
+        document.getElementById('dlCustomerName').textContent = order.customer_name || 'Sin nombre';
+        document.getElementById('dlAddress').textContent = getDeliveryAddress(order) || 'Sin dirección';
+        document.getElementById('dlBalance').textContent = moneyFmt.format(Number(order.balance || 0));
+
+        // Reset state
+        document.getElementById('dlDeliveryPhone').value = '';
+        document.getElementById('dlResultSection').style.display = 'none';
+        document.getElementById('dlGenerateBtn').disabled = false;
+        document.getElementById('dlGenerateBtn').textContent = '🔗 Generar Link';
+        updateWhatsAppButton();
+
+        // Show modal
+        document.getElementById('deliveryLinkModal').classList.add('show');
+      }
+
+      function close() {
+        document.getElementById('deliveryLinkModal').classList.remove('show');
+        _currentOrder = null;
+        _generatedUrl = '';
+      }
+
+      async function generate() {
+        if (!_currentOrder) return;
+
+        var btn = document.getElementById('dlGenerateBtn');
+        btn.disabled = true;
+        btn.textContent = 'Generando...';
+
+        try {
+          var payload = {
+            action: 'generate-token',
+            order_id: _currentOrder.id,
+            business_id: (typeof businessConfig !== 'undefined' && businessConfig.business_id) || ''
+          };
+
+          var response = await (typeof authFetch === 'function' ? authFetch : fetch)('/.netlify/functions/delivery-confirm', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+
+          if (!response.ok) {
+            var errorData = await response.json().catch(function() { return { error: 'Error desconocido' }; });
+            throw new Error(errorData.message || errorData.error || 'No se pudo generar el link');
+          }
+
+          var data = await response.json();
+          _generatedUrl = data.delivery_url || '';
+
+          // Show result
+          document.getElementById('dlGeneratedUrl').textContent = _generatedUrl;
+          document.getElementById('dlResultSection').style.display = 'block';
+          btn.textContent = '✅ Link generado';
+          updateWhatsAppButton();
+
+          if (typeof toast === 'function') toast('Link de entrega generado');
+        } catch (err) {
+          btn.disabled = false;
+          btn.textContent = '🔗 Generar Link';
+          if (typeof toast === 'function') toast(err.message || 'Error al generar link');
+        }
+      }
+
+      async function copyLink() {
+        if (!_generatedUrl) return;
+        try {
+          await navigator.clipboard.writeText(_generatedUrl);
+          if (typeof toast === 'function') toast('Link copiado al portapapeles');
+        } catch (e) {
+          if (typeof toast === 'function') toast('No se pudo copiar');
+        }
+      }
+
+      function sendWhatsApp() {
+        if (!_generatedUrl || !_currentOrder) return;
+
+        var phone = (document.getElementById('dlDeliveryPhone').value || '').replace(/\D/g, '');
+        if (!phone) return;
+
+        var moneyFmt = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
+        var customerName = _currentOrder.customer_name || 'Cliente';
+        var address = getDeliveryAddress(_currentOrder) || 'Sin dirección';
+        var balance = moneyFmt.format(Number(_currentOrder.balance || 0));
+
+        var message = [
+          '🚚 *ENTREGA PENDIENTE*',
+          '',
+          '👤 *Cliente:* ' + customerName,
+          '📍 *Dirección:* ' + address,
+          '💰 *Cobrar:* ' + balance,
+          '',
+          '🔗 *Link para confirmar entrega:*',
+          _generatedUrl,
+          '',
+          '⏰ Link expira en 2 horas.'
+        ].join('\n');
+
+        var waUrl = 'https://wa.me/' + phone + '?text=' + encodeURIComponent(message);
+        window.open(waUrl, '_blank', 'noopener');
+      }
+
+      function updateWhatsAppButton() {
+        var phone = (document.getElementById('dlDeliveryPhone').value || '').replace(/\D/g, '');
+        var btn = document.getElementById('dlWhatsAppBtn');
+        if (btn) {
+          btn.disabled = !phone || !_generatedUrl;
+        }
+      }
+
+      // Wire phone input change to enable/disable WhatsApp button
+      document.addEventListener('DOMContentLoaded', function() {
+        var phoneInput = document.getElementById('dlDeliveryPhone');
+        if (phoneInput) {
+          phoneInput.addEventListener('input', updateWhatsAppButton);
+        }
+      });
+
+      return {
+        open: open,
+        close: close,
+        generate: generate,
+        copyLink: copyLink,
+        sendWhatsApp: sendWhatsApp
+      };
+    })();
   </script>
 </body>
 </html>

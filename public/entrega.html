@@ -1,0 +1,404 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <title>TiqueteVivo | Confirmar Entrega</title>
+  <style>
+    :root {
+      --primary: #18a058;
+      --primary-dark: #0d7040;
+      --bg: #f4f7f6;
+      --card: #ffffff;
+      --ink: #101828;
+      --muted: #667085;
+      --line: #e4e7ec;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .delivery-card {
+      width: min(420px, 100%);
+      background: var(--card);
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      box-shadow: 0 12px 32px rgba(16, 24, 40, 0.08);
+      overflow: hidden;
+    }
+
+    .delivery-header {
+      background: #101828;
+      color: #fff;
+      padding: 20px 24px;
+      text-align: center;
+    }
+    .delivery-header h1 {
+      font-size: 18px;
+      font-weight: 800;
+      margin: 0;
+    }
+    .delivery-header p {
+      font-size: 12px;
+      color: #98a2b3;
+      margin-top: 4px;
+    }
+
+    .delivery-body {
+      padding: 24px 20px;
+      display: grid;
+      gap: 16px;
+    }
+
+    .info-row {
+      display: grid;
+      gap: 4px;
+    }
+    .info-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .info-value {
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--ink);
+      word-break: break-word;
+    }
+
+    .amount-card {
+      background: #fff7ed;
+      border: 1.5px solid #ffedd5;
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+    }
+    .amount-card .amount-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: #9a3412;
+      text-transform: uppercase;
+    }
+    .amount-card .amount-value {
+      font-size: 32px;
+      font-weight: 900;
+      color: #c2410c;
+      margin-top: 4px;
+    }
+    .amount-card.paid {
+      background: #ecfdf5;
+      border-color: #a7f3d0;
+    }
+    .amount-card.paid .amount-label {
+      color: #065f46;
+    }
+    .amount-card.paid .amount-value {
+      color: var(--primary-dark);
+    }
+
+    .divider {
+      height: 1px;
+      background: var(--line);
+    }
+
+    /* Confirm button */
+    .btn-confirm {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 18px 24px;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-size: 18px;
+      font-weight: 900;
+      font-family: inherit;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(24, 160, 88, 0.3);
+      transition: opacity 0.2s, transform 0.1s;
+    }
+    .btn-confirm:active {
+      transform: scale(0.97);
+    }
+    .btn-confirm:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* Hidden file input */
+    .file-input-hidden {
+      position: absolute;
+      width: 0;
+      height: 0;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* States */
+    .state-loading,
+    .state-success,
+    .state-error,
+    .state-expired,
+    .state-already-delivered {
+      display: none;
+      text-align: center;
+      padding: 40px 20px;
+    }
+    .state-loading.visible,
+    .state-success.visible,
+    .state-error.visible,
+    .state-expired.visible,
+    .state-already-delivered.visible {
+      display: block;
+    }
+
+    .state-loading .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid var(--line);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 16px;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .state-success .check-icon {
+      font-size: 64px;
+      margin-bottom: 12px;
+    }
+    .state-success h2 {
+      font-size: 20px;
+      font-weight: 900;
+      color: var(--primary-dark);
+      margin-bottom: 8px;
+    }
+    .state-success p {
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    .state-already-delivered .check-icon {
+      font-size: 64px;
+      margin-bottom: 12px;
+    }
+    .state-already-delivered h2 {
+      font-size: 20px;
+      font-weight: 900;
+      color: var(--primary-dark);
+      margin-bottom: 8px;
+    }
+    .state-already-delivered p {
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    .state-error .error-icon {
+      font-size: 48px;
+      margin-bottom: 12px;
+    }
+    .state-error p {
+      font-size: 14px;
+      color: #b91c1c;
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+    .btn-retry {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 12px 24px;
+      background: #fee2e2;
+      color: #b91c1c;
+      border: 1.5px solid #fca5a5;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 800;
+      font-family: inherit;
+      cursor: pointer;
+    }
+
+    .state-expired .expired-icon {
+      font-size: 48px;
+      margin-bottom: 12px;
+    }
+    .state-expired h2 {
+      font-size: 18px;
+      font-weight: 800;
+      color: #92400e;
+      margin-bottom: 8px;
+    }
+    .state-expired p {
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    /* Upload progress */
+    .upload-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+    .upload-overlay.visible {
+      display: flex;
+    }
+    .upload-box {
+      background: #fff;
+      border-radius: 16px;
+      padding: 32px;
+      text-align: center;
+      width: min(320px, 90%);
+    }
+    .upload-box .spinner {
+      width: 48px;
+      height: 48px;
+      border: 4px solid var(--line);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 16px;
+    }
+    .upload-box p {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    /* Footer */
+    .delivery-footer {
+      text-align: center;
+      padding: 12px 20px 20px;
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .delivery-footer a {
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Loading state (initial page load) -->
+  <div class="delivery-card">
+    <div class="state-loading visible" id="stateLoading">
+      <div class="spinner"></div>
+      <p style="font-size:14px; font-weight:700; color:var(--muted);">Cargando información de entrega...</p>
+    </div>
+
+    <!-- Expired token state -->
+    <div class="state-expired" id="stateExpired">
+      <div class="expired-icon">⏰</div>
+      <h2>Enlace expirado</h2>
+      <p>Este enlace de entrega ha expirado. Solicita uno nuevo al operador.</p>
+    </div>
+
+    <!-- Already delivered state -->
+    <div class="state-already-delivered" id="stateAlreadyDelivered">
+      <div class="check-icon">✅</div>
+      <h2>Ya entregado</h2>
+      <p>Esta orden ya fue confirmada como entregada.</p>
+    </div>
+
+    <!-- Error state (load error) -->
+    <div class="state-error" id="stateError">
+      <div class="error-icon">⚠️</div>
+      <p id="errorMessage">No se pudo cargar la información. Verifica el enlace e intenta de nuevo.</p>
+      <button class="btn-retry" id="btnRetryLoad" type="button">🔄 Reintentar</button>
+    </div>
+
+    <!-- Main delivery content (visible when valid) -->
+    <div id="deliveryContent" style="display:none;">
+      <div class="delivery-header">
+        <h1>🚚 Entrega a domicilio</h1>
+        <p>Confirma la entrega con una foto</p>
+      </div>
+
+      <div class="delivery-body">
+        <div class="info-row">
+          <span class="info-label">Cliente</span>
+          <span class="info-value" id="customerName">—</span>
+        </div>
+
+        <div class="info-row">
+          <span class="info-label">Dirección</span>
+          <span class="info-value" id="deliveryAddress">—</span>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="amount-card" id="amountCard">
+          <div class="amount-label">Cobrar al entregar</div>
+          <div class="amount-value" id="amountValue">$0</div>
+        </div>
+
+        <!-- Confirm button + hidden file input -->
+        <button class="btn-confirm" id="btnConfirm" type="button">
+          📸 Confirmar Entrega
+        </button>
+
+        <input
+          type="file"
+          class="file-input-hidden"
+          id="photoInput"
+          accept="image/*"
+          capture="environment"
+        >
+
+        <!-- Inline error for photo/upload issues -->
+        <div class="state-error" id="statePhotoError" style="padding:16px 0;">
+          <p id="photoErrorMessage">Error al procesar la foto.</p>
+          <button class="btn-retry" id="btnRetryPhoto" type="button">📸 Tomar otra foto</button>
+        </div>
+      </div>
+
+      <div class="delivery-footer">
+        Impulsado por <a href="/">TiqueteVivo</a>
+      </div>
+    </div>
+
+    <!-- Success state (after confirmation) -->
+    <div class="state-success" id="stateSuccess">
+      <div class="check-icon">✅</div>
+      <h2>Entrega confirmada</h2>
+      <p>La foto fue registrada y la orden actualizada. ¡Gracias!</p>
+    </div>
+  </div>
+
+  <!-- Upload overlay -->
+  <div class="upload-overlay" id="uploadOverlay">
+    <div class="upload-box">
+      <div class="spinner"></div>
+      <p>Subiendo foto y confirmando entrega...</p>
+    </div>
+  </div>
+
+  <script src="/js/entrega.js"></script>
+</body>
+</html>

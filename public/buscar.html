@@ -1,0 +1,444 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <title>TiqueteVivo | Buscar mi Pedido</title>
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="TiqueteVivo | Buscar mi Pedido">
+  <meta property="og:description" content="Recupera tu tiquete digital ingresando tu número de teléfono.">
+  <meta property="og:site_name" content="TiqueteVivo">
+  <style>
+    :root {
+      --primary: #18a058;
+      --primary-dark: #0d7040;
+      --bg: #f4f7f6;
+      --card: #ffffff;
+      --ink: #101828;
+      --muted: #667085;
+      --line: #e4e7ec;
+      --red: #ef4444;
+      --green: #10b981;
+      --amber: #f59e0b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px 16px;
+    }
+
+    .page-card {
+      width: min(480px, 100%);
+      background: var(--card);
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      box-shadow: 0 12px 32px rgba(16, 24, 40, 0.08);
+      overflow: hidden;
+    }
+
+    .header {
+      background: #101828;
+      color: #ffffff;
+      padding: 24px;
+      text-align: center;
+    }
+    .header .brand-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.12);
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+    .header h1 {
+      margin: 14px 0 4px;
+      font-size: 22px;
+      font-weight: 900;
+    }
+    .header p {
+      margin: 0;
+      color: #98a2b3;
+      font-size: 14px;
+    }
+
+    .content {
+      padding: 24px 20px;
+      display: grid;
+      gap: 18px;
+    }
+
+    /* Form Elements */
+    .form-group {
+      display: grid;
+      gap: 6px;
+    }
+    .form-group label {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--muted);
+    }
+    .form-group input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--ink);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .form-group input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(24, 160, 88, 0.1);
+    }
+    .form-group input.error {
+      border-color: var(--red);
+      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+    }
+
+    .error-message {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--red);
+      display: none;
+    }
+    .error-message.visible {
+      display: block;
+    }
+
+    .btn-primary {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 10px;
+      background: var(--primary);
+      color: #fff;
+      font-size: 15px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: background 0.2s, opacity 0.2s;
+    }
+    .btn-primary:hover {
+      background: var(--primary-dark);
+    }
+    .btn-primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    /* Section visibility */
+    .section-hidden {
+      display: none;
+    }
+
+    /* OTP Section */
+    .otp-section {
+      background: #f8fafc;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 18px;
+      display: grid;
+      gap: 14px;
+    }
+    .otp-section h3 {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--ink);
+    }
+    .otp-section p {
+      margin: 0;
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+    .otp-input {
+      text-align: center;
+      letter-spacing: 8px;
+      font-size: 24px;
+      font-weight: 900;
+    }
+    .resend-link {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--primary);
+      text-align: center;
+      cursor: pointer;
+      border: none;
+      background: none;
+      padding: 4px;
+    }
+    .resend-link:hover {
+      color: var(--primary-dark);
+      text-decoration: underline;
+    }
+    .resend-link:disabled {
+      color: var(--muted);
+      cursor: not-allowed;
+      text-decoration: none;
+    }
+
+    /* Results Section */
+    .results-section {
+      display: grid;
+      gap: 14px;
+    }
+    .results-section h3 {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--ink);
+    }
+
+    .order-card {
+      background: #f8fafc;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 16px;
+      display: grid;
+      gap: 10px;
+      text-decoration: none;
+      color: inherit;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .order-card:hover {
+      border-color: var(--primary);
+      box-shadow: 0 4px 12px rgba(24, 160, 88, 0.1);
+    }
+    .order-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .order-card-number {
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--ink);
+    }
+    .order-card-status {
+      font-size: 11px;
+      font-weight: 800;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #ecfdf5;
+      color: #065f46;
+    }
+    .order-card-status.in-progress {
+      background: #eff6ff;
+      color: #1e40af;
+    }
+    .order-card-status.ready {
+      background: #ecfdf5;
+      color: #065f46;
+    }
+    .order-card-status.received {
+      background: #f5f3ff;
+      color: #6b21a8;
+    }
+    .order-card-items {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+    .order-card-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 8px;
+      border-top: 1px solid var(--line);
+    }
+    .order-card-total {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+    .order-card-balance {
+      font-size: 13px;
+      font-weight: 800;
+      color: #c2410c;
+    }
+    .order-card-balance.paid {
+      color: var(--green);
+    }
+
+    /* Info/empty state */
+    .empty-state {
+      text-align: center;
+      padding: 24px;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    /* Global error banner */
+    .global-error {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #991b1b;
+      display: none;
+    }
+    .global-error.visible {
+      display: block;
+    }
+
+    /* Loading spinner */
+    .loading-spinner {
+      display: none;
+      text-align: center;
+      padding: 16px;
+    }
+    .loading-spinner.visible {
+      display: block;
+    }
+    .loading-spinner::after {
+      content: '';
+      display: inline-block;
+      width: 24px;
+      height: 24px;
+      border: 3px solid var(--line);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .footer {
+      text-align: center;
+      padding: 16px 20px 24px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .footer a {
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 700;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 400px) {
+      .header h1 {
+        font-size: 20px;
+      }
+      .content {
+        padding: 20px 16px;
+      }
+      .otp-input {
+        font-size: 20px;
+        letter-spacing: 6px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="page-card">
+    <div class="header">
+      <div class="brand-badge">TiqueteVivo 🐧</div>
+      <h1>Buscar mi Pedido</h1>
+      <p>Recupera tu tiquete digital con tu número de teléfono</p>
+    </div>
+
+    <div class="content">
+      <!-- Global Error Banner -->
+      <div class="global-error" id="globalError"></div>
+
+      <!-- Search Form Section -->
+      <div id="searchSection">
+        <div class="form-group">
+          <label for="phoneInput">Número de teléfono</label>
+          <input
+            type="tel"
+            id="phoneInput"
+            placeholder="Ej: 300 123 4567"
+            inputmode="tel"
+            autocomplete="tel"
+          >
+          <span class="error-message" id="phoneError">Formato inválido. Ingresa entre 7 y 15 dígitos.</span>
+        </div>
+
+        <div class="form-group" style="margin-top: 12px;">
+          <label for="slugInput">Negocio</label>
+          <input
+            type="text"
+            id="slugInput"
+            placeholder="Ej: maktub"
+            autocomplete="off"
+          >
+        </div>
+
+        <button class="btn-primary" id="searchBtn" style="margin-top: 16px;">
+          🔍 Buscar mi pedido
+        </button>
+      </div>
+
+      <!-- OTP Verification Section (hidden initially) -->
+      <div id="otpSection" class="section-hidden">
+        <div class="otp-section">
+          <h3>📱 Verificación</h3>
+          <p>Ingresa el código de 6 dígitos que enviamos a tu WhatsApp.</p>
+
+          <div class="form-group">
+            <input
+              type="text"
+              id="otpInput"
+              class="otp-input"
+              maxlength="6"
+              placeholder="000000"
+              inputmode="numeric"
+              pattern="[0-9]*"
+              autocomplete="one-time-code"
+            >
+            <span class="error-message" id="otpError"></span>
+          </div>
+
+          <button class="btn-primary" id="verifyBtn">
+            ✅ Verificar
+          </button>
+
+          <button class="resend-link" id="resendLink">
+            Reenviar código
+          </button>
+        </div>
+      </div>
+
+      <!-- Loading Spinner -->
+      <div class="loading-spinner" id="loadingSpinner"></div>
+
+      <!-- Results Section (hidden initially) -->
+      <div id="resultsSection" class="section-hidden">
+        <div class="results-section">
+          <h3>📋 Tus pedidos activos</h3>
+          <div id="ordersList"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      Impulsado por <a href="/">TiqueteVivo</a> — Recibos digitales sin papel.
+    </div>
+  </div>
+
+  <script src="/js/buscar.js"></script>
+</body>
+</html>

@@ -930,6 +930,15 @@ function render() {
           <button class="btn green" onclick="openQrModal('${o.order_number}')" title="Mostrar Código QR en Mostrador">📸 QR</button>
           <a class="btn light" href="${buildWaLink(o)}" target="_blank" rel="noopener" title="Enviar por WhatsApp">WhatsApp</a>
           <a class="btn light" href="/tiquete.html?number=${o.order_number}&slug=${BUSINESS_SLUG}" target="_blank" rel="noopener" title="Ver tiquete digital 🌐">🌐</a>
+          ${(() => {
+            const cf = o.custom_fields || {};
+            const hasAddr = cf.direccion || cf.delivery_address || cf.address || cf.direccion_entrega;
+            const isFinal = o.status === 'CANCELLED' || isDeliveredStatus(o.status);
+            if (hasAddr && !isFinal) {
+              return `<button class="btn light btn-delivery-link" data-order-id="${o.id}" onclick="DeliveryLinkModal.open('${o.id}')" type="button" title="Generar link de entrega">🚚 Link Entrega</button>`;
+            }
+            return '';
+          })()}
         </div>
       </td>
     </tr>
@@ -1618,6 +1627,196 @@ async function init() {
     navigator.serviceWorker.register('/sw.js').catch(function() {});
   }
 }
+
+// ─── Delivery Link Modal ─────────────────────────────────────────────
+
+/**
+ * DeliveryLinkModal — generates a delivery token via the backend and provides
+ * copy/WhatsApp sharing options for sending the link to delivery personnel.
+ * Requirements: 10.1, 10.2, 10.3, 10.4
+ */
+const DeliveryLinkModal = (() => {
+  let currentOrderId = null;
+  let currentDeliveryUrl = null;
+  let currentOrder = null;
+
+  /**
+   * Opens the delivery link modal for a given order.
+   * Populates the order summary and resets the form state.
+   */
+  function open(orderId) {
+    currentOrderId = orderId;
+    currentDeliveryUrl = null;
+
+    // Find order in local data
+    currentOrder = orders.find(o => o.id === orderId);
+    if (!currentOrder) {
+      toast("Pedido no encontrado");
+      return;
+    }
+
+    // Populate order summary
+    const cf = currentOrder.custom_fields || {};
+    const address = cf.direccion || cf.delivery_address || cf.address || cf.direccion_entrega || "No disponible";
+    const balance = currentOrder.balance || Math.max(0, currentOrder.total - currentOrder.paid);
+
+    document.getElementById("dlCustomerName").textContent = currentOrder.customer_name || "—";
+    document.getElementById("dlAddress").textContent = address;
+    document.getElementById("dlBalance").textContent = money.format(balance);
+
+    // Reset form state
+    document.getElementById("dlDeliveryPhone").value = "";
+    document.getElementById("dlResultSection").style.display = "none";
+    document.getElementById("dlGenerateBtn").disabled = false;
+    document.getElementById("dlGenerateBtn").textContent = "🔗 Generar Link";
+    document.getElementById("dlWhatsAppBtn").disabled = true;
+
+    // Show modal
+    document.getElementById("deliveryLinkModal").classList.add("show");
+
+    // Wire phone input to enable/disable WhatsApp button
+    const phoneInput = document.getElementById("dlDeliveryPhone");
+    phoneInput.oninput = function () {
+      const hasPhone = digitsOnly(phoneInput.value).length >= 7;
+      document.getElementById("dlWhatsAppBtn").disabled = !hasPhone || !currentDeliveryUrl;
+    };
+  }
+
+  /**
+   * Closes the delivery link modal.
+   */
+  function close() {
+    document.getElementById("deliveryLinkModal").classList.remove("show");
+    currentOrderId = null;
+    currentDeliveryUrl = null;
+    currentOrder = null;
+  }
+
+  /**
+   * Calls POST /api/delivery-confirm with action "generate-token" to create
+   * a delivery token and display the URL.
+   */
+  async function generate() {
+    if (!currentOrderId || !businessConfig.business_id) {
+      toast("Error: datos insuficientes");
+      return;
+    }
+
+    const btn = document.getElementById("dlGenerateBtn");
+    btn.disabled = true;
+    btn.textContent = "⏳ Generando...";
+
+    try {
+      const res = await authFetch("/api/delivery-confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "generate-token",
+          order_id: currentOrderId,
+          business_id: businessConfig.business_id
+        })
+      });
+
+      if (!res.ok) {
+        const errorBody = await res.json().catch(() => ({}));
+        throw new Error(errorBody.message || errorBody.error || "Error al generar link");
+      }
+
+      const data = await res.json();
+      currentDeliveryUrl = data.delivery_url;
+
+      // Display the generated URL
+      document.getElementById("dlGeneratedUrl").textContent = currentDeliveryUrl;
+      document.getElementById("dlResultSection").style.display = "block";
+
+      // Enable WhatsApp button if phone is filled
+      const phoneInput = document.getElementById("dlDeliveryPhone");
+      const hasPhone = digitsOnly(phoneInput.value).length >= 7;
+      document.getElementById("dlWhatsAppBtn").disabled = !hasPhone;
+
+      btn.textContent = "✅ Link generado";
+      toast("Link de entrega generado");
+    } catch (err) {
+      btn.disabled = false;
+      btn.textContent = "🔗 Generar Link";
+      toast(err.message || "Error al generar link");
+    }
+  }
+
+  /**
+   * Copies the generated delivery URL to the clipboard.
+   */
+  async function copyLink() {
+    if (!currentDeliveryUrl) return;
+
+    try {
+      await navigator.clipboard.writeText(currentDeliveryUrl);
+      toast("Link copiado al portapapeles");
+      const copyBtn = document.getElementById("dlCopyBtn");
+      copyBtn.textContent = "✅ Copiado";
+      setTimeout(() => { copyBtn.textContent = "📋 Copiar"; }, 2000);
+    } catch (err) {
+      // Fallback: select + copy for older browsers
+      const urlEl = document.getElementById("dlGeneratedUrl");
+      const range = document.createRange();
+      range.selectNodeContents(urlEl);
+      const selection = window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+      try {
+        document.execCommand("copy");
+        toast("Link copiado");
+      } catch (e) {
+        toast("No se pudo copiar. Selecciona y copia manualmente.");
+      }
+      selection.removeAllRanges();
+    }
+  }
+
+  /**
+   * Opens wa.me with a pre-filled message containing customer name, address,
+   * amount to collect, the delivery URL, and expiry notice.
+   * Requirements: 10.2, 10.4
+   */
+  function sendWhatsApp() {
+    if (!currentDeliveryUrl || !currentOrder) return;
+
+    const phoneInput = document.getElementById("dlDeliveryPhone");
+    const phone = digitsOnly(phoneInput.value);
+    if (phone.length < 7) {
+      toast("Ingresa el teléfono del domiciliario");
+      return;
+    }
+
+    const cf = currentOrder.custom_fields || {};
+    const customerName = currentOrder.customer_name || "Cliente";
+    const address = cf.direccion || cf.delivery_address || cf.address || cf.direccion_entrega || "No disponible";
+    const balance = currentOrder.balance || Math.max(0, currentOrder.total - currentOrder.paid);
+
+    // Build WhatsApp message (Req 10.2)
+    const message = [
+      `🚚 *Entrega Pendiente*`,
+      ``,
+      `👤 *Cliente:* ${customerName}`,
+      `📍 *Dirección:* ${address}`,
+      `💰 *Cobrar:* ${money.format(balance)}`,
+      ``,
+      `🔗 *Link de confirmación:*`,
+      currentDeliveryUrl,
+      ``,
+      `⏰ Este link expira en 2 horas.`
+    ].join("\n");
+
+    // Open wa.me in new tab (Req 10.4)
+    const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+    window.open(waUrl, "_blank", "noopener");
+  }
+
+  return { open, close, generate, copyLink, sendWhatsApp };
+})();
+
+// Expose globally for onclick handlers in HTML
+window.DeliveryLinkModal = DeliveryLinkModal;
 
 /**
  * Guess vertical slug from vertical name for theming.
