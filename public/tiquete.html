@@ -362,14 +362,14 @@
   <!-- Offline indicator bar -->
   <div class="offline-bar" id="offlineBar">⚠️ Sin conexión — reintentando...</div>
 
-  <div class="ticket-card" id="card">
+  <div class="ticket-card mx-auto w-full max-w-md" id="card">
     <div class="header">
       <div class="brand-badge"><span id="bizName">Maktub Laundry and Care</span> 🐧</div>
       <h1 id="ticketNumber">Tiquete #----</h1>
       <p id="bizPhone">+57 300 000 0000</p>
     </div>
 
-    <div class="eco-badge">
+    <div class="eco-badge hidden sm:flex">
       🌱 Tiquete Digital 100% Ecológico — Sin Papel ni Impresiones
     </div>
 
@@ -480,15 +480,15 @@
       </div>
 
       <!-- QR Inteligente: Dynamic QR Section -->
-      <div id="qrSection" style="background:linear-gradient(135deg, #f0fdf4 0%, #ecfeff 100%); border:1.5px solid #a7f3d0; border-radius:14px; padding:20px; display:grid; gap:14px; text-align:center;">
+      <div id="qrSection" class="bg-gradient-to-br from-emerald-50 via-cyan-50 to-white border-2 border-emerald-100 rounded-xl p-5 grid gap-4 text-center">
         <div style="display:flex; align-items:center; justify-content:center; gap:8px;">
-          <span style="font-size:20px;">📱</span>
-          <strong style="color:#065f46; font-size:15px;">Tu Tiquete Digital Inteligente</strong>
+          <span class="text-2xl">📱</span>
+          <strong class="text-emerald-700 text-base font-extrabold">Tu Tiquete Digital Inteligente</strong>
         </div>
         
         <!-- QR Code Container -->
-        <div id="ticketQrBox" style="background:#fff; padding:16px; border-radius:12px; border:1px solid #d1fae5; display:inline-block; margin:0 auto;">
-          <div id="ticketQrCode" style="display:flex; justify-content:center; min-height:160px; align-items:center;"></div>
+        <div id="ticketQrBox" class="bg-white p-4 rounded-lg border border-emerald-100 inline-block mx-auto">
+          <div id="ticketQrCode" class="w-56 h-56 sm:w-72 sm:h-72 flex items-center justify-center"></div>
         </div>
 
         <!-- QR Mode Tabs (4-mode tab bar) -->
