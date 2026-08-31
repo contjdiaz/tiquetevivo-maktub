@@ -57,21 +57,25 @@ describe('getAvailableModes', () => {
     expect(getAvailableModes('CANCELLED', 0)[0]).toBe('track');
   });
 
-  it('includes "pay" when balance > 0 and status is not DELIVERED', () => {
+  it('includes "pay" when balance > 0 and status is not DELIVERED or CANCELLED', () => {
     expect(getAvailableModes('RECEIVED', 50000)).toContain('pay');
     expect(getAvailableModes('IN_PROGRESS', 70000)).toContain('pay');
     expect(getAvailableModes('READY', 30000)).toContain('pay');
-    expect(getAvailableModes('CANCELLED', 10000)).toContain('pay');
   });
 
   it('does NOT include "pay" when balance is 0', () => {
     expect(getAvailableModes('RECEIVED', 0)).not.toContain('pay');
     expect(getAvailableModes('READY', 0)).not.toContain('pay');
     expect(getAvailableModes('DELIVERED', 0)).not.toContain('pay');
+    expect(getAvailableModes('CANCELLED', 0)).not.toContain('pay');
   });
 
   it('does NOT include "pay" when status is DELIVERED even with balance > 0', () => {
     expect(getAvailableModes('DELIVERED', 50000)).not.toContain('pay');
+  });
+
+  it('does NOT include "pay" when status is CANCELLED even with balance > 0', () => {
+    expect(getAvailableModes('CANCELLED', 10000)).not.toContain('pay');
   });
 
   it('includes "track" as additional mode when status is READY', () => {

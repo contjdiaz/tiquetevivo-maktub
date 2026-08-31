@@ -41,17 +41,16 @@
   }
 
   /**
-   * Build the Pay QR payload — a payment string with current balance, account, and reference.
-   * Format: PAGO:{balance}|NEQUI:3102688991|REF:TiqueteVivo-{order_number}|NOMBRE:Majesty Lavanderia
-   * @param {{ balance?: number, total?: number, paid?: number, order_number: string|number }} order
-   * @returns {string} Structured payment payload
+   * Build the Pay QR payload — an absolute URL to the validated payment page.
+   * Format: {origin}/pagar.html?order_id={id}&token={ticket_token}
+   * @param {{ id: string, ticket_token?: string, ticketToken?: string }} order - Order with id and ticket_token
+   * @param {string} origin - The site origin (e.g., "https://tiquetevivo.netlify.app")
+   * @returns {string} Absolute URL to the payment page
    */
-  function buildPayPayload(order) {
-    var balance = typeof order.balance === 'number'
-      ? order.balance
-      : Math.max(0, (order.total || 0) - (order.paid || 0));
-    var orderNumber = order.order_number || order.orderNumber || '';
-    return 'PAGO:' + balance + '|NEQUI:3102688991|REF:TiqueteVivo-' + orderNumber + '|NOMBRE:Majesty Lavanderia';
+  function buildPayPayload(order, origin) {
+    var orderId = order.id || '';
+    var token = order.ticket_token || order.ticketToken || '';
+    return origin + '/pagar.html?order_id=' + encodeURIComponent(orderId) + '&token=' + encodeURIComponent(token);
   }
 
   /**

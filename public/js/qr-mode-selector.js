@@ -52,7 +52,7 @@
    *
    * The default mode is always the first element. Additional modes are appended
    * based on the current order state:
-   * - "pay" is included when balance > 0 and status is not DELIVERED
+   * - "pay" is included when balance > 0 and status is not DELIVERED or CANCELLED
    * - When status is READY, "track" is included as an additional mode
    *
    * @param {string} status - Order status: RECEIVED, IN_PROGRESS, READY, DELIVERED, CANCELLED
@@ -63,8 +63,8 @@
     var defaultMode = selectDefaultMode(status, balance);
     var modes = [defaultMode];
 
-    // Include "pay" when balance > 0 and status is not DELIVERED
-    if (balance > 0 && status !== 'DELIVERED') {
+    // Include "pay" when balance > 0 and status is not DELIVERED or CANCELLED
+    if (balance > 0 && status !== 'DELIVERED' && status !== 'CANCELLED') {
       if (modes.indexOf('pay') === -1) {
         modes.push('pay');
       }

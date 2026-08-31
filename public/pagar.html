@@ -1,0 +1,400 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <title>TiqueteVivo | Pagar</title>
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="TiqueteVivo | Pagar Pedido">
+  <meta property="og:description" content="Paga tu saldo pendiente de forma segura.">
+  <meta property="og:site_name" content="TiqueteVivo">
+  <style>
+    :root {
+      --primary: #18a058;
+      --primary-dark: #0d7040;
+      --bg: #f4f7f6;
+      --card: #ffffff;
+      --ink: #101828;
+      --muted: #667085;
+      --line: #e4e7ec;
+      --red: #ef4444;
+      --green: #10b981;
+      --green-light: #ecfdf5;
+      --green-border: #a7f3d0;
+      --gray-light: #f2f4f7;
+      --gray-border: #d0d5dd;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px 16px;
+    }
+
+    .payment-card {
+      width: min(480px, 100%);
+      background: var(--card);
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      box-shadow: 0 12px 32px rgba(16, 24, 40, 0.08);
+      overflow: hidden;
+    }
+
+    .header {
+      background: #101828;
+      color: #ffffff;
+      padding: 24px;
+      text-align: center;
+    }
+    .header .brand-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.12);
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+    .header h1 {
+      margin: 14px 0 4px;
+      font-size: 22px;
+      font-weight: 900;
+    }
+    .header p {
+      margin: 0;
+      color: #98a2b3;
+      font-size: 14px;
+    }
+
+    .content {
+      padding: 24px 20px;
+      display: grid;
+      gap: 16px;
+    }
+
+    /* Loading skeleton */
+    .skeleton {
+      display: grid;
+      gap: 14px;
+    }
+    .skeleton-line {
+      height: 16px;
+      background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: 6px;
+    }
+    .skeleton-line.short { width: 60%; }
+    .skeleton-line.medium { width: 80%; }
+    .skeleton-line.tall { height: 40px; width: 50%; }
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    /* Order info rows */
+    .row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .label {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .value {
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--ink);
+    }
+    .divider {
+      height: 1px;
+      background: var(--line);
+      margin: 4px 0;
+    }
+
+    .items-box {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 14px;
+    }
+    .items-box strong {
+      display: block;
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .items-box p {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 700;
+      color: #1e293b;
+      line-height: 1.4;
+    }
+
+    /* Balance card */
+    .balance-card {
+      background: #fff7ed;
+      border: 1.5px solid #ffedd5;
+      border-radius: 12px;
+      padding: 16px;
+      display: grid;
+      gap: 8px;
+    }
+    .balance-card .amount {
+      font-size: 28px;
+      font-weight: 900;
+      color: #c2410c;
+    }
+
+    /* Paid state (green card) */
+    .paid-card {
+      background: var(--green-light);
+      border: 1.5px solid var(--green-border);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      display: none;
+    }
+    .paid-card .paid-icon {
+      font-size: 48px;
+      margin-bottom: 8px;
+    }
+    .paid-card .paid-title {
+      font-size: 20px;
+      font-weight: 900;
+      color: #065f46;
+      margin: 0 0 4px;
+    }
+    .paid-card .paid-subtitle {
+      font-size: 14px;
+      color: #047857;
+      margin: 0;
+    }
+
+    /* Cancelled state (gray card) */
+    .cancelled-card {
+      background: var(--gray-light);
+      border: 1.5px solid var(--gray-border);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      display: none;
+    }
+    .cancelled-card .cancelled-icon {
+      font-size: 48px;
+      margin-bottom: 8px;
+    }
+    .cancelled-card .cancelled-title {
+      font-size: 20px;
+      font-weight: 900;
+      color: #344054;
+      margin: 0 0 4px;
+    }
+    .cancelled-card .cancelled-subtitle {
+      font-size: 14px;
+      color: var(--muted);
+      margin: 0;
+    }
+
+    /* Pay button */
+    .btn-pay {
+      display: block;
+      width: 100%;
+      border: none;
+      background: var(--green);
+      color: #ffffff;
+      font-weight: 900;
+      font-size: 16px;
+      padding: 16px;
+      border-radius: 12px;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+      transition: opacity 0.2s, transform 0.1s;
+    }
+    .btn-pay:hover {
+      opacity: 0.92;
+    }
+    .btn-pay:active {
+      transform: scale(0.98);
+    }
+    .btn-pay:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .btn-pay .spinner {
+      display: inline-block;
+      width: 18px;
+      height: 18px;
+      border: 3px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Error display */
+    .error-box {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #991b1b;
+      display: none;
+      text-align: center;
+    }
+
+    /* Invalid link error state */
+    .invalid-link-card {
+      background: #fef2f2;
+      border: 1.5px solid #fecaca;
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      display: none;
+    }
+    .invalid-link-card .invalid-icon {
+      font-size: 48px;
+      margin-bottom: 8px;
+    }
+    .invalid-link-card .invalid-title {
+      font-size: 18px;
+      font-weight: 900;
+      color: #991b1b;
+      margin: 0 0 4px;
+    }
+    .invalid-link-card .invalid-subtitle {
+      font-size: 14px;
+      color: #7f1d1d;
+      margin: 0;
+    }
+
+    .footer {
+      text-align: center;
+      padding: 16px 20px 24px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .footer a {
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 700;
+    }
+
+    /* Utility: hidden */
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+  <div class="payment-card">
+    <div class="header">
+      <div class="brand-badge" id="bizBadge">💳 Pagar Pedido</div>
+      <h1 id="orderTitle">Cargando...</h1>
+      <p id="bizName"></p>
+    </div>
+
+    <div class="content">
+
+      <!-- Loading state -->
+      <div id="loadingState" class="skeleton">
+        <div class="skeleton-line medium"></div>
+        <div class="skeleton-line short"></div>
+        <div class="skeleton-line"></div>
+        <div class="skeleton-line"></div>
+        <div class="skeleton-line tall"></div>
+      </div>
+
+      <!-- Invalid link state -->
+      <div id="invalidLinkState" class="invalid-link-card">
+        <div class="invalid-icon">🔗</div>
+        <p class="invalid-title">Enlace inválido</p>
+        <p class="invalid-subtitle">Este enlace de pago no es válido. Verifica el enlace e intenta de nuevo.</p>
+      </div>
+
+      <!-- Paid state (green card, no button) -->
+      <div id="paidState" class="paid-card">
+        <div class="paid-icon">✅</div>
+        <p class="paid-title">Pagado</p>
+        <p class="paid-subtitle">Este pedido ya ha sido pagado en su totalidad.</p>
+      </div>
+
+      <!-- Cancelled state (gray card, no button) -->
+      <div id="cancelledState" class="cancelled-card">
+        <div class="cancelled-icon">🚫</div>
+        <p class="cancelled-title">Orden cancelada</p>
+        <p class="cancelled-subtitle">Esta orden ha sido cancelada y no es posible realizar el pago.</p>
+      </div>
+
+      <!-- Order info (shown when valid with balance) -->
+      <div id="orderInfo" class="hidden">
+        <div style="display:grid; gap:14px;">
+          <div class="row">
+            <span class="label">Pedido</span>
+            <span class="value" id="orderNumber">#----</span>
+          </div>
+
+          <div class="items-box">
+            <strong>Detalle del servicio</strong>
+            <p id="itemsText">—</p>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="row">
+            <span class="label">Total</span>
+            <span class="value" id="totalAmount">$0</span>
+          </div>
+          <div class="row">
+            <span class="label">Abonado</span>
+            <span class="value" id="paidAmount">$0</span>
+          </div>
+
+          <div class="balance-card">
+            <div class="row">
+              <span class="label" style="color:inherit; font-weight:800;">Saldo Pendiente</span>
+              <span class="amount" id="balanceAmount">$0</span>
+            </div>
+          </div>
+
+          <!-- Pay button -->
+          <button id="payBtn" class="btn-pay" type="button">
+            Pagar
+          </button>
+        </div>
+      </div>
+
+      <!-- Error display area -->
+      <div id="errorBox" class="error-box"></div>
+
+    </div>
+
+    <div class="footer">
+      Impulsado por <a href="/">TiqueteVivo</a> — Pagos seguros en línea.
+    </div>
+  </div>
+
+  <script src="/js/pagar.js"></script>
+</body>
+</html>

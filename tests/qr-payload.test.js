@@ -83,39 +83,41 @@ describe('buildPickupPayload + parsePickupPayload round-trip', () => {
 });
 
 describe('buildPayPayload', () => {
-  it('returns correctly formatted payment string using order.balance', () => {
-    const order = { balance: 70000, order_number: '8707' };
-    const result = buildPayPayload(order);
-    expect(result).toBe('PAGO:70000|NEQUI:3102688991|REF:TiqueteVivo-8707|NOMBRE:Majesty Lavanderia');
+  const origin = 'https://tiquetevivo.netlify.app';
+
+  it('returns URL format with order_id and token params', () => {
+    const order = { id: 'abc-123', ticket_token: 'tok-456' };
+    const result = buildPayPayload(order, origin);
+    expect(result).toBe('https://tiquetevivo.netlify.app/pagar.html?order_id=abc-123&token=tok-456');
   });
 
-  it('computes balance from total and paid when balance is not a number', () => {
-    const order = { total: 100000, paid: 60000, order_number: '1234' };
-    const result = buildPayPayload(order);
-    expect(result).toBe('PAGO:40000|NEQUI:3102688991|REF:TiqueteVivo-1234|NOMBRE:Majesty Lavanderia');
+  it('supports ticketToken alias', () => {
+    const order = { id: 'order-1', ticketToken: 'token-xyz' };
+    const result = buildPayPayload(order, origin);
+    expect(result).toBe('https://tiquetevivo.netlify.app/pagar.html?order_id=order-1&token=token-xyz');
   });
 
-  it('clamps computed balance to zero when paid exceeds total', () => {
-    const order = { total: 50000, paid: 60000, order_number: '9999' };
-    const result = buildPayPayload(order);
-    expect(result).toBe('PAGO:0|NEQUI:3102688991|REF:TiqueteVivo-9999|NOMBRE:Majesty Lavanderia');
+  it('encodes special characters in order_id and token', () => {
+    const order = { id: 'id with spaces', ticket_token: 'tok&en=val' };
+    const result = buildPayPayload(order, origin);
+    expect(result).toBe('https://tiquetevivo.netlify.app/pagar.html?order_id=id%20with%20spaces&token=tok%26en%3Dval');
   });
 
-  it('handles zero balance', () => {
-    const order = { balance: 0, order_number: '5555' };
-    const result = buildPayPayload(order);
-    expect(result).toBe('PAGO:0|NEQUI:3102688991|REF:TiqueteVivo-5555|NOMBRE:Majesty Lavanderia');
+  it('handles missing id and token gracefully', () => {
+    const order = {};
+    const result = buildPayPayload(order, origin);
+    expect(result).toBe('https://tiquetevivo.netlify.app/pagar.html?order_id=&token=');
   });
 
-  it('supports orderNumber alias', () => {
-    const order = { balance: 25000, orderNumber: '4321' };
-    const result = buildPayPayload(order);
-    expect(result).toBe('PAGO:25000|NEQUI:3102688991|REF:TiqueteVivo-4321|NOMBRE:Majesty Lavanderia');
+  it('uses ticket_token over ticketToken when both present', () => {
+    const order = { id: 'ord-1', ticket_token: 'primary', ticketToken: 'secondary' };
+    const result = buildPayPayload(order, origin);
+    expect(result).toBe('https://tiquetevivo.netlify.app/pagar.html?order_id=ord-1&token=primary');
   });
 
-  it('defaults to zero balance when no balance info is provided', () => {
-    const order = { order_number: '1111' };
-    const result = buildPayPayload(order);
-    expect(result).toBe('PAGO:0|NEQUI:3102688991|REF:TiqueteVivo-1111|NOMBRE:Majesty Lavanderia');
+  it('works with different origin values', () => {
+    const order = { id: 'uuid-1', ticket_token: 'tok-1' };
+    const result = buildPayPayload(order, 'http://localhost:8888');
+    expect(result).toBe('http://localhost:8888/pagar.html?order_id=uuid-1&token=tok-1');
   });
 });

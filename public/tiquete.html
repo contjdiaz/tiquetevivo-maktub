@@ -17,356 +17,21 @@
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="TiqueteVivo | Tu Recibo Digital 🌱">
   <meta name="twitter:description" content="Consulta el estado de tu pedido, saldo pendiente y contacta al negocio. 100% digital, cero papel.">
-  <style>
-    :root {
-      --primary: #18a058;
-      --primary-dark: #0d7040;
-      --bg: #f4f7f6;
-      --card: #ffffff;
-      --ink: #101828;
-      --muted: #667085;
-      --line: #e4e7ec;
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font-family: 'Inter', system-ui, -apple-system, sans-serif;
-      background: var(--bg);
-      color: var(--ink);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 20px 16px;
-    }
-    .ticket-card {
-      width: min(480px, 100%);
-      background: var(--card);
-      border-radius: 16px;
-      border: 1px solid var(--line);
-      box-shadow: 0 12px 32px rgba(16, 24, 40, 0.08);
-      overflow: hidden;
-    }
-    .header {
-      background: #101828;
-      color: #ffffff;
-      padding: 24px;
-      text-align: center;
-      position: relative;
-    }
-    .header .brand-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      background: rgba(255, 255, 255, 0.12);
-      padding: 6px 14px;
-      border-radius: 999px;
-      font-size: 13px;
-      font-weight: 700;
-      letter-spacing: 0.02em;
-    }
-    .header h1 {
-      margin: 14px 0 4px;
-      font-size: 26px;
-      font-weight: 900;
-    }
-    .header p {
-      margin: 0;
-      color: #98a2b3;
-      font-size: 14px;
-    }
-    .eco-badge {
-      background: #ecfdf3;
-      color: #027a48;
-      border: 1px solid #abefc6;
-      border-radius: 8px;
-      padding: 10px 14px;
-      margin: 18px 20px 0;
-      font-size: 13px;
-      font-weight: 700;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-    }
-    .stepper {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 4px;
-      padding: 20px;
-      border-bottom: 1px solid var(--line);
-    }
-    .step {
-      text-align: center;
-      font-size: 11px;
-      font-weight: 700;
-      color: #d0d5dd;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 6px;
-    }
-    .step .dot {
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      background: #f2f4f7;
-      color: #98a2b3;
-      display: grid;
-      place-items: center;
-      font-size: 12px;
-    }
-    .step.active { color: var(--primary-dark); }
-    .step.active .dot { background: var(--primary); color: #fff; }
-    .step.completed .dot { background: #abefc6; color: #027a48; }
-
-    .content { padding: 24px 20px; display: grid; gap: 18px; }
-    .row { display: flex; justify-content: space-between; align-items: center; }
-    .label { color: var(--muted); font-size: 13px; font-weight: 600; }
-    .value { font-size: 15px; font-weight: 800; color: var(--ink); }
-    .divider { height: 1px; background: var(--line); margin: 4px 0; }
-
-    .items-box {
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 10px;
-      padding: 14px;
-    }
-    .items-box strong { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
-    .items-box p { margin: 0; font-size: 15px; font-weight: 700; color: #1e293b; line-height: 1.4; }
-
-    .photo-evidence-box {
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 10px;
-      padding: 14px;
-      display: none;
-    }
-    .photo-evidence-box.visible {
-      display: block;
-    }
-    .photo-evidence-box strong {
-      display: block;
-      font-size: 13px;
-      color: var(--muted);
-      margin-bottom: 10px;
-    }
-    .photo-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
-    @media (max-width: 400px) {
-      .photo-grid {
-        grid-template-columns: 1fr;
-      }
-    }
-    .photo-item {
-      display: grid;
-      gap: 6px;
-    }
-    .photo-item img {
-      width: 100%;
-      height: 140px;
-      object-fit: cover;
-      border-radius: 8px;
-      border: 1px solid #e2e8f0;
-      background: #fff;
-    }
-    .photo-item .photo-label {
-      font-size: 12px;
-      font-weight: 700;
-      color: #475569;
-      text-align: center;
-    }
-    .photo-item .photo-time {
-      font-size: 11px;
-      color: #98a2b3;
-      text-align: center;
-    }
-
-    .confirmation-box {
-      background: #ecfdf5;
-      border: 1.5px solid #a7f3d0;
-      border-radius: 10px;
-      padding: 14px;
-      display: none;
-    }
-    .confirmation-box.visible {
-      display: block;
-    }
-    .confirmation-box.confirmed {
-      background: #dbeafe;
-      border-color: #93c5fd;
-    }
-    .confirmation-box strong {
-      display: block;
-      font-size: 13px;
-      color: #065f46;
-      margin-bottom: 8px;
-    }
-    .confirmation-box.confirmed strong {
-      color: #1e40af;
-    }
-    .confirmation-box button {
-      width: 100%;
-      border: 0;
-      background: #10b981;
-      color: #fff;
-      font-weight: 800;
-      padding: 12px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 14px;
-    }
-    .confirmation-box button:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
-    .confirmation-box .confirmation-meta {
-      font-size: 12px;
-      color: #475569;
-      margin-top: 6px;
-    }
-
-    .balance-card {
-      background: #ecfdf5;
-      border: 1.5px solid #a7f3d0;
-      border-radius: 12px;
-      padding: 16px;
-      display: grid;
-      gap: 8px;
-    }
-    .balance-card.has-balance {
-      background: #fff7ed;
-      border-color: #ffedd5;
-    }
-    .balance-card .amount {
-      font-size: 28px;
-      font-weight: 900;
-      color: var(--primary-dark);
-    }
-    .balance-card.has-balance .amount {
-      color: #c2410c;
-    }
-
-    .btn-action {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      background: #25d366;
-      color: #042f1a;
-      text-decoration: none;
-      font-weight: 900;
-      padding: 14px;
-      border-radius: 10px;
-      font-size: 15px;
-      box-shadow: 0 4px 14px rgba(37, 211, 102, 0.25);
-    }
-
-    .footer {
-      text-align: center;
-      padding: 16px 20px 24px;
-      color: var(--muted);
-      font-size: 12px;
-    }
-    .footer a { color: var(--primary); text-decoration: none; font-weight: 700; }
-
-    /* Offline indicator */
-    .offline-bar {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      background: #fbbf24;
-      color: #78350f;
-      font-size: 12px;
-      font-weight: 700;
-      text-align: center;
-      padding: 6px 12px;
-      z-index: 1000;
-    }
-    .offline-bar.visible {
-      display: block;
-    }
-
-    /* Ready for pickup notification banner */
-    .ready-banner {
-      display: none;
-      background: #d1fae5;
-      border: 1.5px solid #34d399;
-      border-radius: 10px;
-      padding: 12px 16px;
-      text-align: center;
-      font-size: 14px;
-      font-weight: 800;
-      color: #065f46;
-      animation: pulseReady 2s ease-in-out infinite;
-    }
-    .ready-banner.visible {
-      display: block;
-    }
-    @keyframes pulseReady {
-      0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.02); }
-    }
-
-    /* QR Tab styles */
-    .qr-tabs {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
-      gap: 6px;
-      margin-top: 4px;
-    }
-    .qr-tab-btn {
-      border: 1.5px solid #d1d5db;
-      background: #fff;
-      color: #374151;
-      border-radius: 8px;
-      padding: 10px 6px;
-      font-size: 11px;
-      font-weight: 800;
-      cursor: pointer;
-      transition: all .2s;
-      text-align: center;
-    }
-    .qr-tab-btn.active-track {
-      border-color: #3b82f6;
-      background: #eff6ff;
-      color: #1e40af;
-    }
-    .qr-tab-btn.active-pickup {
-      border-color: #10b981;
-      background: #ecfdf5;
-      color: #065f46;
-    }
-    .qr-tab-btn.active-pay {
-      border-color: #f59e0b;
-      background: #fffbeb;
-      color: #92400e;
-    }
-    .qr-tab-btn.active-review {
-      border-color: #8b5cf6;
-      background: #f5f3ff;
-      color: #6b21a8;
-    }
-  </style>
+  <link rel="stylesheet" href="/styles.css">
 </head>
-<body>
+<body class="tiquete-page">
 
   <!-- Offline indicator bar -->
   <div class="offline-bar" id="offlineBar">⚠️ Sin conexión — reintentando...</div>
 
-  <div class="ticket-card" id="card">
-    <div class="header">
-      <div class="brand-badge"><span id="bizName">Maktub Laundry and Care</span> 🐧</div>
-      <h1 id="ticketNumber">Tiquete #----</h1>
-      <p id="bizPhone">+57 300 000 0000</p>
+  <div class="ticket-card mx-auto w-full max-w-md" id="card">
+    <div class="header bg-slate-900 text-white p-6 text-center relative">
+      <div class="brand-badge inline-flex items-center gap-2 bg-white/10 px-3 py-1 rounded-full text-sm font-extrabold"><span id="bizName">Maktub Laundry and Care</span> 🐧</div>
+      <h1 id="ticketNumber" class="mt-3 text-2xl sm:text-3xl font-extrabold">Tiquete #----</h1>
+      <p id="bizPhone" class="text-slate-300 mt-1">+57 300 000 0000</p>
     </div>
 
-    <div class="eco-badge">
+    <div class="eco-badge hidden sm:flex">
       🌱 Tiquete Digital 100% Ecológico — Sin Papel ni Impresiones
     </div>
 
@@ -384,29 +49,29 @@
         <span class="value" id="orderDate">--/--/----</span>
       </div>
 
-      <div class="items-box">
-        <strong>Detalle del servicio</strong>
-        <p id="itemsText">...</p>
-        <div id="rackBadge" style="display:none; margin-top:8px; font-size:12px; font-weight:800; color:#1e40af; background:#dbeafe; padding:4px 8px; border-radius:6px; width:fit-content;">
+      <div class="items-box bg-slate-50 border border-slate-200 rounded-lg p-4">
+        <strong class="text-slate-600">Detalle del servicio</strong>
+        <p id="itemsText" class="mt-2 text-slate-800 font-bold">...</p>
+        <div id="rackBadge" class="hidden mt-2 text-xs font-extrabold text-emerald-800 bg-emerald-50 px-2 py-1 rounded inline-block">
           📍 Ubicación: <span id="rackText">Estante B-04</span>
         </div>
       </div>
 
-      <div id="delicateNotice" style="display:none; background:#fffbe8; border:1px solid #ffe58f; padding:10px 12px; border-radius:8px; font-size:12px; color:#873800; font-weight:700;">
-        ⚠️ **Prenda Delicada / Alto Valor**: Lavado con procedimiento especial. Riesgo de desgaste previo o decoloración aceptado.
+      <div id="delicateNotice" class="hidden bg-amber-50 border border-amber-200 px-3 py-2 rounded text-amber-800 text-sm font-extrabold">
+        ⚠️ <span class="sr-only">Aviso:</span> <span class="font-extrabold">Prenda Delicada / Alto Valor</span>: Lavado con procedimiento especial. Riesgo de desgaste previo o decoloración aceptado.
       </div>
 
       <!-- Photo evidence section (intake + delivery) -->
-      <div id="photoEvidenceBox" class="photo-evidence-box">
-        <strong>📸 Evidencia fotográfica</strong>
+      <div id="photoEvidenceBox" class="photo-evidence-box hidden">
+        <strong class="text-slate-600">📸 Evidencia fotográfica</strong>
         <div class="photo-grid">
-          <div class="photo-item" id="intakePhotoItem" style="display:none;">
-            <img id="intakePhotoImg" src="" alt="Foto al recibir">
+          <div class="photo-item" id="intakePhotoItem" class="hidden">
+            <img id="intakePhotoImg" class="w-full h-36 object-cover rounded border border-slate-200" src="" alt="Foto al recibir">
             <div class="photo-label">Al recibir</div>
             <div class="photo-time" id="intakePhotoTime"></div>
           </div>
-          <div class="photo-item" id="deliveryPhotoItem" style="display:none;">
-            <img id="deliveryPhotoImg" src="" alt="Foto al entregar">
+          <div class="photo-item" id="deliveryPhotoItem" class="hidden">
+            <img id="deliveryPhotoImg" class="w-full h-36 object-cover rounded border border-slate-200" src="" alt="Foto al entregar">
             <div class="photo-label">Al entregar</div>
             <div class="photo-time" id="deliveryPhotoTime"></div>
           </div>
@@ -414,16 +79,16 @@
       </div>
 
       <!-- Digital confirmations (intake + delivery) -->
-      <div id="intakeConfirmationBox" class="confirmation-box">
-        <strong>✋ Confirmación al recibir</strong>
-        <button id="intakeConfirmBtn" type="button">Confirmar recepción conforme</button>
-        <div class="confirmation-meta" id="intakeConfirmationMeta"></div>
+      <div id="intakeConfirmationBox" class="confirmation-box hidden">
+        <strong class="text-slate-800">✋ Confirmación al recibir</strong>
+        <button id="intakeConfirmBtn" type="button" class="mt-3 w-full bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold py-3 rounded">Confirmar recepción conforme</button>
+        <div class="confirmation-meta mt-2 text-sm text-slate-600" id="intakeConfirmationMeta"></div>
       </div>
 
-      <div id="deliveryConfirmationBox" class="confirmation-box">
-        <strong>✋ Confirmación al entregar</strong>
-        <button id="deliveryConfirmBtn" type="button">Confirmar entrega conforme</button>
-        <div class="confirmation-meta" id="deliveryConfirmationMeta"></div>
+      <div id="deliveryConfirmationBox" class="confirmation-box hidden">
+        <strong class="text-slate-800">✋ Confirmación al entregar</strong>
+        <button id="deliveryConfirmBtn" type="button" class="mt-3 w-full bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold py-3 rounded">Confirmar entrega conforme</button>
+        <div class="confirmation-meta mt-2 text-sm text-slate-600" id="deliveryConfirmationMeta"></div>
       </div>
 
       <!-- Dynamic custom fields section (rendered from business config) -->
@@ -443,10 +108,10 @@
         <span class="value" id="paidAmount">$0</span>
       </div>
 
-      <div class="balance-card" id="balanceCard">
+      <div class="balance-card bg-emerald-50 border-emerald-100 rounded-lg p-4" id="balanceCard">
         <div class="row">
-          <span class="label" style="color:inherit; font-weight:800;">Saldo Pendiente</span>
-          <span class="amount" id="balanceAmount">$0</span>
+          <span class="label font-extrabold text-slate-800">Saldo Pendiente</span>
+          <span class="amount text-2xl" id="balanceAmount">$0</span>
         </div>
       </div>
 
@@ -454,46 +119,46 @@
       <div id="loyaltyWidgetContainer" style="display:none;"></div>
 
       <!-- Módulo de Recaudo Digital -->
-      <div id="paymentMethodsBox" style="background:#f0fdf4; border:1px dashed #22c55e; border-radius:12px; padding:14px; display:grid; gap:8px;">
-        <strong style="color:#15803d; font-size:14px;">💳 Medios de Pago / Transferencia Directa</strong>
-        <div style="font-size:13px; color:#166534; line-height:1.5;">
+      <div id="paymentMethodsBox" class="bg-emerald-50 border-dashed border-2 border-emerald-200 rounded-lg p-4 grid gap-3">
+        <strong class="text-emerald-800 text-sm font-extrabold">💳 Medios de Pago / Transferencia Directa</strong>
+        <div class="text-emerald-800 text-sm leading-relaxed">
           • <strong>Nequi / Daviplata:</strong> 310 268 8991<br>
           • <strong>Bancolombia Ahorros:</strong> 123-456789-01
         </div>
-        <a id="payProofBtn" class="btn-action" href="#" target="_blank" rel="noopener" style="background:#15803d; color:#fff; font-size:13px; padding:10px; margin-top:4px;">
+        <a id="payProofBtn" class="mt-2 inline-flex items-center justify-center bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-2 px-3 rounded" href="#" target="_blank" rel="noopener">
           📲 Enviar Comprobante de Pago
         </a>
         <!-- Payment gateway button container (rendered dynamically when balance > 0) -->
         <div id="paymentButtonContainer"></div>
       </div>
 
-      <a class="btn-action" id="waBtn" href="#" target="_blank" rel="noopener">
+      <a id="waBtn" href="#" target="_blank" rel="noopener" class="inline-flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white font-extrabold py-3 px-4 rounded w-full">
         💬 Contactar por WhatsApp
       </a>
 
       <!-- Ready for Pickup notification banner -->
-      <div class="ready-banner" id="readyBanner">
+      <div class="ready-banner hidden bg-emerald-100 border-emerald-200 rounded-lg p-3 text-emerald-800 font-extrabold" id="readyBanner">
         🎉 ¡Tu pedido está LISTO para recoger! Muestra el QR en el mostrador.
       </div>
 
       <!-- QR Inteligente: Dynamic QR Section -->
-      <div id="qrSection" style="background:linear-gradient(135deg, #f0fdf4 0%, #ecfeff 100%); border:1.5px solid #a7f3d0; border-radius:14px; padding:20px; display:grid; gap:14px; text-align:center;">
+      <div id="qrSection" class="bg-gradient-to-br from-emerald-50 via-cyan-50 to-white border-2 border-emerald-100 rounded-xl p-5 grid gap-4 text-center">
         <div style="display:flex; align-items:center; justify-content:center; gap:8px;">
-          <span style="font-size:20px;">📱</span>
-          <strong style="color:#065f46; font-size:15px;">Tu Tiquete Digital Inteligente</strong>
+          <span class="text-2xl">📱</span>
+          <strong class="text-emerald-700 text-base font-extrabold">Tu Tiquete Digital Inteligente</strong>
         </div>
         
         <!-- QR Code Container -->
-        <div id="ticketQrBox" style="background:#fff; padding:16px; border-radius:12px; border:1px solid #d1fae5; display:inline-block; margin:0 auto;">
-          <div id="ticketQrCode" style="display:flex; justify-content:center; min-height:160px; align-items:center;"></div>
+        <div id="ticketQrBox" class="bg-white p-4 rounded-lg border border-emerald-100 inline-block mx-auto">
+          <div id="ticketQrCode" class="w-56 h-56 sm:w-72 sm:h-72 flex items-center justify-center"></div>
         </div>
 
         <!-- QR Mode Tabs (4-mode tab bar) -->
         <div class="qr-tabs" id="qrTabsContainer">
-          <button class="qr-tab-btn" id="qrTabTrack" data-mode="track">📍 Rastrear</button>
-          <button class="qr-tab-btn" id="qrTabPickup" data-mode="pickup">🏪 Recoger</button>
-          <button class="qr-tab-btn" id="qrTabPay" data-mode="pay">💳 Pagar</button>
-          <button class="qr-tab-btn" id="qrTabReview" data-mode="review">⭐ Reseña</button>
+          <button class="qr-tab-btn px-3 py-2 text-xs font-extrabold bg-white border border-slate-200 rounded" id="qrTabTrack" data-mode="track">📍 Rastrear</button>
+          <button class="qr-tab-btn px-3 py-2 text-xs font-extrabold bg-white border border-slate-200 rounded" id="qrTabPickup" data-mode="pickup">🏪 Recoger</button>
+          <button class="qr-tab-btn px-3 py-2 text-xs font-extrabold bg-white border border-slate-200 rounded" id="qrTabPay" data-mode="pay">💳 Pagar</button>
+          <button class="qr-tab-btn px-3 py-2 text-xs font-extrabold bg-white border border-slate-200 rounded" id="qrTabReview" data-mode="review">⭐ Reseña</button>
         </div>
 
         <!-- Share & Save Buttons -->
@@ -836,7 +501,7 @@
           payload = QrPayload.buildPickupPayload(order);
           break;
         case "pay":
-          payload = QrPayload.buildPayPayload(order);
+          payload = QrPayload.buildPayPayload(order, origin);
           break;
         case "review":
           payload = QrPayload.buildReviewPayload(order, origin);

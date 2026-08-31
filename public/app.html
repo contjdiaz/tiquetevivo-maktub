@@ -13,747 +13,22 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800;900&display=swap" rel="stylesheet">
   <title>TiqueteVivo App</title>
-  <style>
-    /* ─── Variables ─────────────────────────────────────────── */
-    :root {
-      --ink:#0f172a; --muted:#64748b; --line:#e2e8f0; --bg:#f8fafc;
-      --panel:#fff; --green:#10b981; --green-dark:#059669;
-      --blue:#6366f1; --amber:#f59e0b; --red:#ef4444; --soft-green:#ecfdf5;
-      --sidebar-w: 260px;
-      --bottomnav-h: 68px;
-      --radius: 14px;
-      --shadow-sm: 0 1px 3px rgba(0,0,0,.04), 0 1px 2px rgba(0,0,0,.06);
-      --shadow-md: 0 4px 16px rgba(0,0,0,.06);
-      --transition: .2s cubic-bezier(.4,0,.2,1);
-    }
-    * { box-sizing:border-box; }
-    body {
-      margin:0;
-      font-family:Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-      background:var(--bg); color:var(--ink);
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-    }
-    button,input,select,textarea { font:inherit; }
-    a { color:inherit; }
-
-    /* ─── Login overlay ─────────────────────────────────────── */
-    .login-overlay {
-      position:fixed; inset:0; z-index:9999;
-      background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
-      display:flex; align-items:center; justify-content:center;
-      padding:20px;
-    }
-    .login-overlay.hidden { display:none; }
-    .login-card {
-      width:min(420px, 100%);
-      background:var(--panel); border-radius:var(--radius);
-      padding:32px; box-shadow:0 24px 60px rgba(0,0,0,.25);
-    }
-    .login-card h2 { margin:0 0 8px; font-size:22px; }
-    .login-card p { margin:0 0 24px; color:var(--muted); font-size:14px; }
-    .login-card label { display:block; margin-bottom:16px; font-weight:700; font-size:14px; }
-    .login-card input {
-      width:100%; margin-top:6px; padding:12px 14px;
-      border:1px solid var(--line); border-radius:10px;
-    }
-    .login-card button {
-      width:100%; padding:14px; border:none; border-radius:10px;
-      background:var(--green); color:#fff; font-weight:800; cursor:pointer;
-    }
-    .login-card button:disabled { opacity:.6; cursor:not-allowed; }
-    .login-error { color:var(--red); font-size:13px; margin-top:12px; font-weight:700; }
-    .user-pill {
-      display:flex; align-items:center; gap:8px;
-      padding:8px 12px; background:rgba(255,255,255,.08);
-      border-radius:999px; font-size:12px; font-weight:700;
-      margin-top:auto;
-    }
-
-    /* ─── Shell (desktop: sidebar + main) ───────────────────── */
-    .shell {
-      display:grid;
-      grid-template-columns: var(--sidebar-w) minmax(0,1fr);
-      min-height:100vh;
-    }
-
-    /* ─── Sidebar ───────────────────────────────────────────── */
-    aside {
-      background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
-      color:#fff;
-      padding:24px 16px;
-      display:flex; flex-direction:column; justify-content:space-between;
-      position:sticky; top:0; height:100vh; overflow-y:auto;
-      border-right: 1px solid rgba(255,255,255,.05);
-    }
-    .brand {
-      display:flex; align-items:center; gap:12px;
-      font-size:20px; font-weight:950; margin-bottom:28px;
-    }
-    .mark {
-      width:38px; height:38px; border-radius:10px;
-      background: linear-gradient(135deg, #6366f1, #8b5cf6);
-      color:#fff;
-      display:grid; place-items:center; font-weight:950; flex-shrink:0;
-      font-size: 14px;
-      box-shadow: 0 4px 12px rgba(99,102,241,.3);
-    }
-    .nav { display:grid; gap:4px; }
-    .nav button {
-      border:0; border-radius:10px; padding:12px 14px;
-      color:#94a3b8; background:transparent;
-      text-align:left; cursor:pointer; font-weight:700; font-size:13px;
-      transition: all var(--transition);
-      display: flex; align-items: center; gap: 10px;
-    }
-    .nav button.active,
-    .nav button:hover:not([disabled]) { background:rgba(99,102,241,.12); color:#fff; }
-    .nav button[disabled] { opacity:.35; cursor:not-allowed; }
-
-    /* Business selector */
-    .biz-selector { margin-bottom:24px; }
-    .single-business-mode .biz-selector { display:none; }
-    .biz-label {
-      display:block; color:#94a3b8; font-size:10px; font-weight:700;
-      text-transform:uppercase; letter-spacing:.06em; margin-bottom:6px;
-    }
-    .biz-select {
-      width:100%; border:1px solid rgba(255,255,255,.12); border-radius:10px;
-      padding:11px 12px; background:rgba(255,255,255,.06); color:#fff;
-      font-weight:700; font-size:13px; cursor:pointer;
-      appearance:none; -webkit-appearance:none;
-      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='3'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
-      background-repeat:no-repeat; background-position:right 12px center;
-      transition: border-color var(--transition);
-    }
-    .biz-select:focus { outline:none; border-color:#6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,.15); }
-    .biz-select option { background:#1e293b; color:#fff; }
-
-    /* Data status box */
-    .data-box { display:grid; gap:8px; margin-top:24px; }
-    .data-box label { color:#94a3b8; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
-    .data-status {
-      border:1px solid rgba(255,255,255,.1); border-radius:10px;
-      padding:10px 12px; background:rgba(16,185,129,.08);
-      color:#6ee7b7; font-weight:700; font-size:12px; text-align:center;
-    }
-
-    /* ─── Main content ──────────────────────────────────────── */
-    main { padding:28px 32px; display:grid; gap:24px; align-content:start; min-width:0; }
-
-    /* Top bar */
-    .topbar {
-      display:flex; justify-content:space-between; gap:12px;
-      align-items:center; flex-wrap:wrap;
-    }
-    h1 { margin:0; font-size:30px; line-height:1.05; letter-spacing:-0.02em; }
-    .sub { color:var(--muted); margin-top:4px; font-size:16px; }
-    .topbar-actions { display:flex; gap:10px; flex-wrap:wrap; }
-
-    /* ─── Buttons ───────────────────────────────────────────── */
-    .btn {
-      border:1px solid var(--ink); background:var(--ink); color:#fff;
-      min-height:44px; padding:0 18px; border-radius:10px;
-      font-weight:700; font-size:13px; cursor:pointer;
-      text-decoration:none;
-      display:inline-flex; align-items:center; justify-content:center;
-      gap:6px; white-space:nowrap; touch-action:manipulation;
-      transition: all var(--transition);
-      box-shadow: var(--shadow-sm);
-    }
-    .btn:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); }
-    .btn:active { transform: translateY(0); }
-    .btn.light { background:#fff; color:var(--ink); border-color:var(--line); }
-    .btn.light:hover { background:#f1f5f9; }
-    .btn.green { background:var(--green); border-color:var(--green); color:#fff; }
-    .btn.green:hover { background:var(--green-dark); }
-    .btn.whatsapp { background:#25d366; border-color:#25d366; color:#052e16; }
-    .btn.whatsapp:hover { background:#22c55e; }
-    .btn:disabled { opacity:.55; cursor:not-allowed; transform:none; box-shadow:none; }
-    .btn.full { width:100%; }
-
-    /* ─── Stats grid ─────────────────────────────────────────── */
-    .stats { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; }
-    .stat,.panel,.receipt {
-      background:var(--panel); border:1px solid var(--line);
-      border-radius:var(--radius); padding:20px;
-      box-shadow: var(--shadow-sm);
-      transition: box-shadow var(--transition);
-    }
-    .stat:hover { box-shadow: var(--shadow-md); }
-    .stat span {
-      color:var(--muted); font-size:11px; font-weight:700;
-      text-transform:uppercase; letter-spacing:0.04em;
-    }
-    .stat strong { display:block; font-size:28px; margin-top:8px; color:var(--ink); font-weight:900; }
-
-    /* ─── Layout: table + form panel ────────────────────────── */
-    .layout { display:grid; grid-template-columns:minmax(0,1fr) minmax(320px,390px); gap:20px; align-items:start; }
-
-    /* Toolbar / search */
-    .toolbar {
-      display:flex; justify-content:space-between; gap:12px;
-      align-items:center; margin-bottom:14px; flex-wrap:wrap;
-    }
-    .filters { display:flex; gap:10px; flex-wrap:wrap; width:100%; justify-content:flex-end; }
-    .toolbar input,.toolbar select {
-      border:1px solid var(--line); border-radius:8px;
-      padding:9px 12px; background:#fff; min-height:40px;
-    }
-
-    /* ─── Table ─────────────────────────────────────────────── */
-    .table-wrap {
-      width:100%; overflow-x:auto; border-radius:var(--radius);
-      border:1px solid var(--line); -webkit-overflow-scrolling:touch;
-      box-shadow: var(--shadow-sm);
-    }
-    table { width:100%; border-collapse:collapse; min-width:560px; background:#fff; }
-    th,td {
-      padding:12px 14px; border-bottom:1px solid var(--line);
-      text-align:left; font-size:13px; vertical-align:middle;
-    }
-    th {
-      color:var(--muted); font-size:11px; text-transform:uppercase;
-      letter-spacing:.04em; background:#f8fafc; font-weight:700;
-    }
-    .badge {
-      display:inline-flex; align-items:center; min-height:24px;
-      padding:0 10px; border-radius:999px; font-size:11px; font-weight:800;
-      background:#eef2ff; color:var(--blue); white-space:nowrap;
-    }
-    .badge.ready { background:#ecfdf5; color:#065f46; }
-    .badge.late { background:#fff7ed; color:#b54708; }
-    .empty { color:var(--muted); padding:24px 8px; text-align:center; font-size:14px; }
-
-    /* ─── Order cards (mobile only, hidden on desktop) ───────── */
-    .order-cards { display:none; }
-    .order-card {
-      background:#fff; border:1px solid var(--line); border-radius:var(--radius);
-      padding:16px 18px; display:grid; gap:12px;
-      box-shadow: var(--shadow-sm);
-      transition: transform var(--transition), box-shadow var(--transition);
-    }
-    .order-card:active { transform: scale(.98); }
-    .order-card-header {
-      display:flex; justify-content:space-between; align-items:flex-start; gap:8px;
-    }
-    .order-card-num {
-      font-size:18px; font-weight:900; color:var(--ink);
-    }
-    .order-card-status select {
-      border:1px solid var(--line); border-radius:8px;
-      padding:6px 10px; font-size:12px; font-weight:700;
-      background:#fff; min-height:36px;
-    }
-    .order-card-info { font-size:13px; }
-    .order-card-info .name { font-weight:800; margin-bottom:2px; }
-    .order-card-info .phone { color:var(--muted); font-size:12px; }
-    .order-card-detail { font-size:13px; color:var(--ink); line-height:1.45; }
-    .order-card-balance {
-      font-size:20px; font-weight:900;
-    }
-    .order-card-balance.zero { color:var(--green); }
-    .order-card-balance.pending { color:var(--red); }
-    .order-card-actions { display:flex; gap:8px; flex-wrap:wrap; }
-    .order-card-actions .btn { min-height:40px; font-size:12px; flex:1; }
-
-    /* ─── Form panel ─────────────────────────────────────────── */
-    .form { display:grid; gap:14px; margin-top:12px; }
-    .form label { display:grid; gap:5px; color:#374151; font-size:12px; font-weight:700; }
-    .form input,.form select,.form textarea {
-      width:100%; border:1.5px solid var(--line); border-radius:10px;
-      padding:11px 14px; background:#fff; min-height:44px;
-      transition: border-color var(--transition), box-shadow var(--transition);
-    }
-    .form input:focus,.form select:focus,.form textarea:focus {
-      outline:none;
-      border-color:#6366f1;
-      box-shadow: 0 0 0 3px rgba(99,102,241,.08);
-    }
-    .form textarea { min-height:80px; resize:vertical; }
-    .row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-
-    /* Photo input */
-    .photo-input-wrap {
-      border: 1.5px dashed var(--line);
-      border-radius: 10px;
-      padding: 12px;
-      background: #fff;
-      transition: border-color var(--transition), background var(--transition);
-    }
-    .photo-input-wrap.has-photo {
-      border-color: var(--green);
-      background: var(--soft-green);
-    }
-    .photo-input-wrap input[type="file"] {
-      display: none;
-    }
-    .photo-label-btn {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      padding: 10px 14px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: #fff;
-      color: var(--ink);
-      font-weight: 700;
-      font-size: 12px;
-      cursor: pointer;
-      transition: all var(--transition);
-    }
-    .photo-label-btn:hover {
-      border-color: var(--green);
-      color: var(--green-dark);
-    }
-    .photo-preview {
-      margin-top: 10px;
-      position: relative;
-      display: none;
-    }
-    .photo-preview.show {
-      display: block;
-    }
-    .photo-preview img {
-      width: 100%;
-      max-height: 180px;
-      object-fit: cover;
-      border-radius: 8px;
-      border: 1px solid var(--line);
-    }
-    .photo-remove {
-      position: absolute;
-      top: 6px;
-      right: 6px;
-      border: 0;
-      background: rgba(239, 68, 68, 0.9);
-      color: #fff;
-      border-radius: 50%;
-      width: 26px;
-      height: 26px;
-      font-size: 14px;
-      cursor: pointer;
-      display: grid;
-      place-items: center;
-    }
-    .photo-hint {
-      font-size: 11px;
-      color: var(--muted);
-      margin-top: 6px;
-      font-weight: 600;
-    }
-
-    /* Receipt */
-    .receipt { display:none; border-color:#b9e8d4; background:var(--soft-green); margin-top:14px; }
-    .receipt.show { display:grid; gap:10px; }
-    .receipt strong { color:var(--green-dark); }
-    .receipt p { margin:0; color:#14532d; }
-    .receipt-actions { display:flex; gap:8px; flex-wrap:wrap; }
-
-    /* ─── Toast ─────────────────────────────────────────────── */
-    .toast {
-      display:none; position:fixed; left:50%; transform:translateX(-50%);
-      bottom:80px; background:#0f172a; color:#fff;
-      padding:12px 20px; border-radius:12px;
-      box-shadow:0 12px 32px rgba(15,23,42,.3); z-index:200;
-      font-weight:700; font-size:13px; white-space:nowrap;
-      max-width:calc(100vw - 32px); text-align:center;
-      animation: fadeInUp .3s ease;
-    }
-    @keyframes fadeInUp {
-      from { opacity:0; transform:translateX(-50%) translateY(10px); }
-      to { opacity:1; transform:translateX(-50%) translateY(0); }
-    }
-
-    /* ─── Modals ─────────────────────────────────────────────── */
-    .modal {
-      display:none; position:fixed; inset:0;
-      background:rgba(15,23,42,0.7); backdrop-filter:blur(6px);
-      place-items:center; z-index:100; padding:16px;
-    }
-    .modal.show { display:grid; }
-    .modal-card {
-      background:#fff; border-radius:20px; width:min(420px,100%);
-      padding:28px; text-align:center;
-      box-shadow:0 24px 48px rgba(0,0,0,0.2);
-      display:grid; gap:16px;
-      max-height:90vh; overflow-y:auto;
-      animation: scaleIn .2s cubic-bezier(.4,0,.2,1);
-    }
-    @keyframes scaleIn {
-      from { transform: scale(.95); opacity:0; }
-      to { transform: scale(1); opacity:1; }
-    }
-
-    /* ─── Floating Action Button (mobile new order) ──────────── */
-    .fab {
-      display:none;
-      position:fixed; right:20px; bottom:calc(var(--bottomnav-h) + 20px);
-      width:60px; height:60px; border-radius:50%;
-      background: linear-gradient(135deg, #10b981, #059669);
-      color:#fff;
-      border:0; font-size:28px; font-weight:900;
-      box-shadow: 0 8px 24px rgba(16,185,129,.4);
-      cursor:pointer; z-index:90;
-      align-items:center; justify-content:center;
-      touch-action:manipulation;
-      transition: transform var(--transition), box-shadow var(--transition);
-    }
-    .fab:active { transform: scale(.9); }
-
-    /* ─── Bottom Nav (mobile only) ───────────────────────────── */
-    .bottom-nav {
-      display:none;
-      position:fixed; bottom:0; left:0; right:0;
-      height:var(--bottomnav-h);
-      background: rgba(15,23,42,.97);
-      backdrop-filter: blur(12px);
-      border-top:1px solid rgba(255,255,255,.06);
-      z-index:150;
-      flex-direction:row; align-items:stretch; justify-content:space-around;
-      padding-bottom: env(safe-area-inset-bottom);
-    }
-    .bottom-nav-btn {
-      flex:1; border:0; background:transparent;
-      color:#64748b; cursor:pointer;
-      display:flex; flex-direction:column;
-      align-items:center; justify-content:center;
-      gap:4px; font-size:10px; font-weight:700;
-      letter-spacing:.02em; text-transform:uppercase;
-      touch-action:manipulation; padding:0;
-      transition: color var(--transition);
-    }
-    .bottom-nav-btn.active { color:#10b981; }
-    .bottom-nav-btn .icon { font-size:20px; line-height:1; }
-
-    /* ─── Mobile form drawer ─────────────────────────────────── */
-    .form-drawer {
-      display:none;
-      position:fixed; inset:0; z-index:160;
-      background:rgba(15,23,42,.65); backdrop-filter:blur(6px);
-      align-items:flex-end;
-    }
-    .form-drawer.open { display:flex; }
-    .form-drawer-sheet {
-      width:100%; background:#fff;
-      border-radius:24px 24px 0 0;
-      max-height:92vh; overflow-y:auto;
-      padding:20px 16px calc(16px + env(safe-area-inset-bottom));
-      display:grid; gap:14px;
-      box-shadow: 0 -12px 40px rgba(0,0,0,.2);
-      animation: slideUp .3s cubic-bezier(.4,0,.2,1);
-    }
-    @keyframes slideUp {
-      from { transform: translateY(100%); }
-      to { transform: translateY(0); }
-    }
-    .form-drawer-handle {
-      width:40px; height:4px; border-radius:2px;
-      background:var(--line); margin:0 auto 8px;
-    }
-    .form-drawer-header {
-      display:flex; justify-content:space-between;
-      align-items:center; gap:8px;
-    }
-    .form-drawer-header strong { font-size:18px; font-weight:800; }
-    .form-drawer-close {
-      border:0; background:#f1f5f9; border-radius:50%;
-      width:34px; height:34px; font-size:18px; cursor:pointer;
-      display:grid; place-items:center; flex-shrink:0;
-      transition: background var(--transition);
-    }
-    .form-drawer-close:hover { background:#e2e8f0; }
-
-    /* ─── Tablet / small desktop breakpoint ─────────────────── */
-    @media (max-width:1080px) {
-      .shell { grid-template-columns:1fr; }
-      aside { display:none; } /* replaced by bottom-nav on mobile */
-      main { padding:16px 14px 100px; }
-    }
-
-    /* ─── Mobile breakpoint ──────────────────────────────────── */
-    @media (max-width:767px) {
-      /* Show bottom nav & FAB */
-      .bottom-nav { display:flex; }
-      .fab { display:flex; }
-
-      /* Top bar compact */
-      .topbar { flex-direction:column; align-items:stretch; gap:8px; }
-      .topbar > div:first-child { text-align:center; }
-      h1 { font-size:22px; }
-      .sub { font-size:14px; }
-      .topbar-actions { width:100%; justify-content:stretch; gap:8px; }
-      .topbar-actions .btn { flex:1; font-size:12px; padding:0 10px; }
-
-      /* Stats 2x2 */
-      .stats { grid-template-columns:1fr 1fr; gap:10px; }
-      .stat { padding:12px 14px; }
-      .stat strong { font-size:20px; }
-
-      /* Layout single column */
-      .layout { grid-template-columns:1fr; }
-
-      /* Hide desktop table, show cards */
-      .table-wrap { display:none; }
-      .order-cards { display:grid; gap:10px; }
-
-      /* Form panel hidden on mobile (shown in drawer instead) */
-      .panel.form-panel { display:none; }
-
-      /* Filters full width */
-      .filters { flex-direction:column; }
-      .filters input,.filters select { width:100%; min-height:44px; }
-
-      /* Row fields stack */
-      .row { grid-template-columns:1fr; }
-
-      /* Toast above bottom nav */
-      .toast { bottom:calc(var(--bottomnav-h) + 12px); }
-    }
-
-    /* ─── Very small screens ─────────────────────────────────── */
-    @media (max-width:380px) {
-      .stats { grid-template-columns:1fr 1fr; gap:8px; }
-      .stat span { font-size:10px; }
-      .stat strong { font-size:18px; }
-    }
-
-    /* ─── Large desktop ──────────────────────────────────────── */
-    @media (min-width:1081px) {
-      .bottom-nav { display:none; }
-      .fab { display:none; }
-      .form-drawer { display:none !important; }
-      .panel.form-panel { display:block !important; }
-    }
-
-    /* ─── Kanban board ───────────────────────────────────────── */
-    .kanban-board { display:none; margin-top:12px; }
-    body.kanban-active .kanban-board { display:block; }
-    body.kanban-active .panel .table-wrap,
-    body.kanban-active .panel .order-cards { display:none !important; }
-
-    .kanban-fallback {
-      background: var(--soft-green); border: 1px solid var(--line);
-      border-radius: 8px; padding: 8px 12px; margin-bottom: 10px;
-      font-size: 12px; color: var(--muted);
-    }
-
-    .kanban-track {
-      display: flex; gap: 12px; align-items: stretch;
-      overflow-x: auto; padding-bottom: 10px;
-      scroll-snap-type: x proximity;
-    }
-    .kanban-track::-webkit-scrollbar { height: 8px; }
-    .kanban-track::-webkit-scrollbar-thumb { background: var(--line); border-radius: 4px; }
-
-    .kanban-column {
-      flex: 0 0 260px; width: 260px; scroll-snap-align: start;
-      background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius);
-      padding: 10px; display: flex; flex-direction: column; min-height: 320px;
-    }
-    .kanban-column-header {
-      display: flex; align-items: center; justify-content: space-between;
-      gap: 8px; margin-bottom: 10px; padding: 2px 2px 0;
-    }
-    .kanban-column-title { font-weight: 800; font-size: 13px; letter-spacing:.02em; }
-    .kanban-column-count {
-      background: #eef6ff; color: var(--blue);
-      border-radius: 999px; padding: 2px 9px; font-size: 12px; font-weight: 800;
-    }
-    .kanban-column-hint { margin-top: auto; padding-top: 10px; font-size: 11px; color: var(--muted); text-align:center; }
-
-    .kanban-cards {
-      display: flex; flex-direction: column; gap: 8px;
-      flex: 1; max-height: 62vh; overflow-y: auto;
-      border-radius: 10px; padding: 4px;
-      transition: background var(--transition), outline-color var(--transition);
-      outline: 2px dashed transparent; outline-offset: -3px;
-    }
-    .kanban-cards.kanban-valid-target {
-      background: rgba(16,185,129,.07);
-      outline-color: var(--green);
-    }
-    .kanban-cards.kanban-invalid-target { opacity: .45; }
-
-    .kanban-card {
-      background: var(--panel); border: 1px solid var(--line);
-      border-radius: 10px; padding: 10px; cursor: grab;
-      box-shadow: var(--shadow-sm);
-      transition: transform var(--transition), box-shadow var(--transition);
-    }
-    .kanban-card:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); }
-    .kanban-card-cancelled { opacity: .6; cursor: default; }
-
-    .kanban-card-top { display:flex; justify-content:space-between; align-items:center; gap:6px; margin-bottom:4px; }
-    .kanban-card-num { font-weight: 800; font-size: 13px; }
-    .kanban-card-balance { font-size: 11px; font-weight: 800; border-radius: 999px; padding: 2px 8px; white-space:nowrap; }
-    .kanban-card-balance.pending { background:#fef2f2; color:var(--red); }
-    .kanban-card-balance.zero { background:var(--soft-green); color:var(--green-dark); }
-    .kanban-card-name { font-weight: 700; font-size: 13px; margin-bottom: 2px; }
-    .kanban-card-items {
-      font-size: 12px; color: var(--muted); line-height: 1.35;
-      display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
-    }
-    .kanban-card-chip {
-      display:inline-block; margin-top:6px; margin-right:4px;
-      font-size:11px; font-weight:700; color: var(--blue);
-      background:#eef6ff; border-radius:999px; padding:2px 8px;
-    }
-    .kanban-card-chip.kanban-card-rack { color: var(--amber); background:#fffbeb; }
-
-    .kanban-ghost { opacity:.35; }
-    .kanban-chosen { box-shadow: var(--shadow-md) !important; }
-    .kanban-dragging { transform: rotate(2deg); }
-
-    /* Cancel zone */
-    .kanban-cancel-zone { flex-basis: 190px; width: 190px; background:#fef2f2; border-color:#fecaca; }
-    .kanban-cancel-zone .kanban-column-title { color: var(--red); }
-    .kanban-cancel-zone .kanban-column-count { background:#fee2e2; color:var(--red); }
-    .kanban-cancel-zone .kanban-cards.kanban-valid-target { background: rgba(239,68,68,.08); outline-color: var(--red); }
-
-    @media (max-width: 767px) {
-      .kanban-column { flex-basis: 230px; width: 230px; min-height: 260px; }
-      .kanban-cards { max-height: 52vh; }
-    }
-
-    /* ─── Dark Mode Overrides ────────────────────────────────── */
-    .dark-mode table { background: var(--panel); }
-    .dark-mode th { background: #1e293b; color: #94a3b8; }
-    .dark-mode td { color: #e2e8f0; }
-    .dark-mode .form input,
-    .dark-mode .form select,
-    .dark-mode .form textarea {
-      background: #1e293b; color: #f1f5f9; border-color: #334155;
-    }
-    .dark-mode .toolbar input,
-    .dark-mode .toolbar select {
-      background: #1e293b; color: #f1f5f9; border-color: #334155;
-    }
-    .dark-mode .order-card { background: #1e293b; border-color: #334155; }
-    .dark-mode .receipt { background: #064e3b; border-color: #065f46; }
-    .dark-mode .receipt strong { color: #6ee7b7; }
-    .dark-mode .receipt p { color: #a7f3d0; }
-    .dark-mode .btn.light { background: #1e293b; color: #f1f5f9; border-color: #334155; }
-    .dark-mode .btn.light:hover { background: #334155; }
-    .dark-mode .modal-card { background: #1e293b; }
-    .dark-mode .form-drawer-sheet { background: #1e293b; }
-    .dark-mode .form-drawer-close { background: #334155; color: #f1f5f9; }
-    .dark-mode .kanban-column { background: #0f172a; border-color: #334155; }
-    .dark-mode .kanban-card { background: #1e293b; border-color: #334155; }
-    .dark-mode .kanban-card-balance.pending { background:#450a0a; color:#fca5a5; }
-    .dark-mode .kanban-card-balance.zero { background:#064e3b; color:#6ee7b7; }
-    .dark-mode .kanban-card-chip { background:#1e1b4b; color:#a5b4fc; }
-    .dark-mode .kanban-card-chip.kanban-card-rack { background:#451a03; color:#fcd34d; }
-    .dark-mode .kanban-cancel-zone { background:#450a0a; border-color:#7f1d1d; }
-    .dark-mode h1, .dark-mode strong { color: #f1f5f9; }
-    .dark-mode .photo-input-wrap,
-    .dark-mode .photo-label-btn {
-      background: #1e293b;
-      border-color: #334155;
-      color: #f1f5f9;
-    }
-    .dark-mode .photo-input-wrap.has-photo {
-      background: #064e3b;
-      border-color: #059669;
-    }
-    .dark-mode .photo-hint { color: #94a3b8; }
-
-    /* ─── Dark Mode Toggle Button ─────────────────────────────── */
-    .dark-toggle {
-      border: 0; background: rgba(255,255,255,.08);
-      color: #94a3b8; border-radius: 8px;
-      width: 36px; height: 36px;
-      display: grid; place-items: center;
-      cursor: pointer; font-size: 16px;
-      transition: all var(--transition);
-    }
-    .dark-toggle:hover { background: rgba(255,255,255,.12); color: #fff; }
-
-    /* ─── Loyalty Badge ──────────────────────────────────────── */
-    .loyalty-badge {
-      background: #fef3c7 !important; color: #92400e !important;
-      font-size: 10px !important; padding: 2px 7px !important;
-      vertical-align: middle; margin-left: 4px;
-    }
-    .dark-mode .loyalty-badge {
-      background: #451a03 !important; color: #fcd34d !important;
-    }
-
-    /* ─── Coupon Redemption Panel ────────────────────────────── */
-    .coupon-panel {
-      background: var(--panel); border: 1px solid var(--line);
-      border-radius: var(--radius); padding: 16px 18px;
-      box-shadow: var(--shadow-sm); margin-top: 16px;
-    }
-    .coupon-panel strong {
-      font-size: 14px; display: block; margin-bottom: 10px;
-    }
-    .coupon-form {
-      display: flex; gap: 8px; align-items: stretch;
-    }
-    .coupon-form input {
-      flex: 1; border: 1.5px solid var(--line); border-radius: 8px;
-      padding: 10px 12px; font-size: 13px; font-weight: 600;
-      text-transform: uppercase; min-height: 40px;
-      transition: border-color var(--transition);
-    }
-    .coupon-form input:focus {
-      outline: none; border-color: #6366f1;
-      box-shadow: 0 0 0 3px rgba(99,102,241,.08);
-    }
-    .coupon-form button {
-      white-space: nowrap;
-    }
-    .coupon-result {
-      margin-top: 10px; padding: 10px 12px;
-      border-radius: 8px; font-size: 12px; font-weight: 700;
-      display: none;
-    }
-    .coupon-result.success {
-      display: block; background: #ecfdf5; color: #065f46;
-      border: 1px solid #a7f3d0;
-    }
-    .coupon-result.error {
-      display: block; background: #fef2f2; color: #991b1b;
-      border: 1px solid #fecaca;
-    }
-    .coupon-result.info {
-      display: block; background: #eff6ff; color: #1e40af;
-      border: 1px solid #bfdbfe;
-    }
-    .coupon-detail {
-      margin-top: 8px; font-size: 12px; color: var(--muted);
-    }
-    .coupon-apply-row {
-      display: flex; gap: 8px; align-items: center; margin-top: 8px;
-    }
-    .coupon-apply-row select {
-      flex: 1; border: 1px solid var(--line); border-radius: 8px;
-      padding: 8px 10px; font-size: 12px; font-weight: 700;
-      min-height: 36px;
-    }
-    .dark-mode .coupon-panel { background: #1e293b; border-color: #334155; }
-    .dark-mode .coupon-form input { background: #0f172a; color: #f1f5f9; border-color: #334155; }
-    .dark-mode .coupon-result.success { background: #064e3b; color: #6ee7b7; border-color: #065f46; }
-    .dark-mode .coupon-result.error { background: #450a0a; color: #fca5a5; border-color: #7f1d1d; }
-    .dark-mode .coupon-result.info { background: #1e1b4b; color: #a5b4fc; border-color: #3730a3; }
-  </style>
+  <link rel="stylesheet" href="/styles.css">
 </head>
-<body>
+<body class="app-page">
   <!-- ─── Login overlay ─────────────────────────────────────────────── -->
-  <div id="loginOverlay" class="login-overlay hidden">
-    <div class="login-card">
+  <div id="loginOverlay" class="hidden fixed inset-0 z-50 flex items-center justify-center p-5 bg-gradient-to-b from-slate-900 to-slate-800">
+    <div class="w-full max-w-md bg-white rounded-xl p-8 shadow-2xl">
       <h2>🔐 Acceso al panel</h2>
       <p>Ingresa tus credenciales de operador para continuar.</p>
       <form id="loginForm">
-        <label>Correo electrónico
-          <input id="loginEmail" type="email" required placeholder="operador@negocio.com">
+        <label class="block">Correo electrónico
+          <input id="loginEmail" type="email" required placeholder="operador@negocio.com" class="mt-2 w-full border border-slate-200 rounded-md px-3 py-2">
         </label>
-        <label>Contraseña
-          <input id="loginPassword" type="password" required placeholder="••••••••">
+        <label class="block">Contraseña
+          <input id="loginPassword" type="password" required placeholder="••••••••" class="mt-2 w-full border border-slate-200 rounded-md px-3 py-2">
         </label>
-        <button id="loginBtn" type="submit">Ingresar</button>
+        <button id="loginBtn" type="submit" class="mt-4 w-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-3 rounded-md">Ingresar</button>
         <div id="loginError" class="login-error"></div>
       </form>
     </div>
@@ -761,34 +36,36 @@
 
   <div class="shell">
     <!-- ─── Sidebar (desktop) ─────────────────────────────── -->
-    <aside>
+    <aside class="hidden lg:flex flex-col justify-between w-[260px] h-screen sticky top-0 p-6 bg-gradient-to-b from-slate-900 to-slate-800 text-white border-r border-white/5 overflow-auto">
       <div>
-        <div class="brand"><span class="mark">TV</span>TiqueteVivo</div>
+        <div class="flex items-center gap-3 text-lg font-extrabold mb-7"><span class="w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 text-white grid place-items-center font-black">TV</span>TiqueteVivo</div>
 
-        <div class="biz-selector">
-          <label class="biz-label">Negocio activo</label>
-          <select id="businessSelector" class="biz-select">
+        <div class="mb-6">
+          <label class="block text-xs uppercase text-slate-300 font-bold mb-2">Negocio activo</label>
+          <select id="businessSelector" class="w-full bg-transparent text-white font-bold rounded-md border border-white/12 px-3 py-2 appearance-none pr-10 bg-no-repeat bg-right">
             <option value="">Cargando...</option>
           </select>
         </div>
 
-        <div class="nav">
-          <button class="active" data-section="pedidos">📋 Pedidos</button>
-          <button data-section="caja" disabled title="Próximamente">💰 Caja</button>
-          <button data-section="clientes" disabled title="Próximamente">👥 Clientes</button>
-          <button data-section="ajustes" disabled title="Próximamente">⚙️ Ajustes</button>
-        </div>
+        <nav class="grid gap-2">
+          <button class="w-full text-left rounded-md px-3 py-2 text-white bg-slate-800/30 font-bold hover:bg-slate-800/40" data-section="pedidos">📋 Pedidos</button>
+          <button class="w-full text-left rounded-md px-3 py-2 text-slate-400 font-bold" data-section="caja" disabled title="Próximamente">💰 Caja</button>
+          <button class="w-full text-left rounded-md px-3 py-2 text-slate-400 font-bold" data-section="clientes" disabled title="Próximamente">👥 Clientes</button>
+          <button class="w-full text-left rounded-md px-3 py-2 text-slate-400 font-bold" data-section="ajustes" disabled title="Próximamente">⚙️ Ajustes</button>
+        </nav>
       </div>
 
-      <div id="userPill" class="user-pill" style="display:none;"></div>
-      <button id="logoutBtn" class="user-pill" type="button" style="display:none; margin-top:8px; cursor:pointer;">🚪 Cerrar sesión</button>
+      <div>
+        <div id="userPill" class="user-pill hidden"></div>
+        <button id="logoutBtn" class="user-pill hidden mt-3 w-full justify-center" type="button">🚪 Cerrar sesión</button>
 
-      <div class="data-box">
-        <label>Estado de datos</label>
-        <div class="data-status" id="dataStatus">Demo activa</div>
-        <div style="display:flex; gap:8px; margin-top:4px;">
-          <button class="btn light" id="syncBtn" type="button" style="flex:1;">🔄 Actualizar</button>
-          <button class="dark-toggle" id="darkModeToggle" type="button" onclick="DarkMode.toggle()" title="Modo oscuro">🌙</button>
+        <div class="mt-6">
+          <label class="block text-xs uppercase text-slate-300 font-bold">Estado de datos</label>
+          <div class="mt-2 bg-emerald-900/10 text-emerald-300 rounded-md px-3 py-2 font-bold text-sm text-center" id="dataStatus">Demo activa</div>
+          <div class="flex gap-2 mt-3">
+            <button id="syncBtn" class="flex-1 bg-white text-slate-900 rounded-md py-2 font-bold" type="button">🔄 Actualizar</button>
+            <button class="w-9 h-9 rounded-md bg-white/6 grid place-items-center" id="darkModeToggle" type="button" onclick="DarkMode.toggle()" title="Modo oscuro">🌙</button>
+          </div>
         </div>
       </div>
     </aside>
@@ -796,24 +73,24 @@
     <!-- ─── Main content ──────────────────────────────────── -->
     <main>
       <!-- Top bar -->
-      <div class="topbar">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
         <div>
-          <h1>Pedidos del día</h1>
-          <div class="sub">Cargando...</div>
+          <h1 class="text-2xl font-extrabold">Pedidos del día</h1>
+          <div class="text-sm text-slate-500">Cargando...</div>
         </div>
-        <div class="topbar-actions">
-          <button class="btn" id="scanQrBtn" type="button" onclick="Scanner.open()">📸 Escanear QR</button>
-          <button class="btn green" id="cashReportBtn" type="button">📊 Cierre de Caja</button>
-          <a class="btn light" href="index.html">🏠</a>
+        <div class="flex items-center gap-3">
+          <button class="inline-flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-md font-bold" id="scanQrBtn" type="button" onclick="Scanner.open()">📸 Escanear QR</button>
+          <button class="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-md font-bold" id="cashReportBtn" type="button">📊 Cierre de Caja</button>
+          <a class="inline-flex items-center gap-2 bg-white text-slate-900 border border-slate-200 px-3 py-2 rounded-md font-bold" href="index.html">🏠</a>
         </div>
       </div>
 
       <!-- Stats -->
-      <section class="stats">
-        <div class="stat"><span>Pedidos</span><strong id="statOrders">0</strong></div>
-        <div class="stat"><span>Ventas</span><strong id="statSales">$0</strong></div>
-        <div class="stat"><span>Saldos</span><strong id="statBalance">$0</strong></div>
-        <div class="stat"><span>Listos</span><strong id="statReady">0</strong></div>
+      <section class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-white border border-slate-100 rounded-lg p-4 shadow-sm"><span class="block text-xs text-slate-500 font-bold">Pedidos</span><strong id="statOrders" class="block text-2xl font-extrabold">0</strong></div>
+        <div class="bg-white border border-slate-100 rounded-lg p-4 shadow-sm"><span class="block text-xs text-slate-500 font-bold">Ventas</span><strong id="statSales" class="block text-2xl font-extrabold">$0</strong></div>
+        <div class="bg-white border border-slate-100 rounded-lg p-4 shadow-sm"><span class="block text-xs text-slate-500 font-bold">Saldos</span><strong id="statBalance" class="block text-2xl font-extrabold">$0</strong></div>
+        <div class="bg-white border border-slate-100 rounded-lg p-4 shadow-sm"><span class="block text-xs text-slate-500 font-bold">Listos</span><strong id="statReady" class="block text-2xl font-extrabold">0</strong></div>
       </section>
 
       <!-- Content layout -->
@@ -821,34 +98,37 @@
 
         <!-- Orders panel -->
         <div class="panel">
-          <div class="toolbar">
-            <strong>Órdenes recientes</strong>
-            <div class="filters">
-              <input id="search" placeholder="🔍 Buscar cliente o tiquete">
-              <select id="statusFilter"><option value="">Todos los estados</option></select>
-              <button class="btn light" id="viewToggle" type="button">🗂️ Ver tablero</button>
+          <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-3">
+            <div>
+              <strong class="text-lg font-extrabold">Órdenes recientes</strong>
+              <div class="text-sm text-slate-500">Últimas entradas y filtros rápidos</div>
+            </div>
+            <div class="flex items-center gap-2 w-full md:w-auto">
+              <input id="search" placeholder="🔍 Buscar cliente o tiquete" class="flex-1 md:w-64 px-3 py-2 border border-slate-200 rounded-md bg-white" />
+              <select id="statusFilter" class="px-3 py-2 border border-slate-200 rounded-md bg-white"><option value="">Todos los estados</option></select>
+              <button id="viewToggle" type="button" class="ml-1 inline-flex items-center gap-2 bg-white text-slate-900 border border-slate-200 px-3 py-2 rounded-md font-bold">🗂️ Ver tablero</button>
             </div>
           </div>
 
           <!-- Desktop table -->
-          <div class="table-wrap">
-            <table>
-              <thead>
+          <div class="table-wrap bg-white">
+            <table class="min-w-full divide-y divide-slate-100 bg-white">
+              <thead class="bg-slate-50">
                 <tr>
-                  <th>Tiquete</th>
-                  <th>Cliente</th>
-                  <th>Detalle & Ubicación</th>
-                  <th>Saldo</th>
-                  <th>Estado</th>
-                  <th>Acciones</th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Tiquete</th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Cliente</th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Detalle & Ubicación</th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Saldo</th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Estado</th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Acciones</th>
                 </tr>
               </thead>
-              <tbody id="ordersBody"></tbody>
+              <tbody id="ordersBody" class="divide-y divide-slate-100 bg-white"></tbody>
             </table>
           </div>
 
           <!-- Mobile cards (rendered by app.js) -->
-          <div class="order-cards" id="orderCards"></div>
+          <div class="order-cards grid gap-3" id="orderCards"></div>
 
           <!-- Kanban board (rendered by kanban-board.js, toggled) -->
           <div class="kanban-board" id="kanbanBoard"></div>
@@ -999,6 +279,46 @@
         <button class="btn light" id="deliveryPhotoSkip" type="button">Omitir</button>
         <button class="btn green" id="deliveryPhotoConfirm" type="button">Confirmar entrega</button>
       </div>
+    </div>
+  </div>
+
+  <!-- ─── Delivery Link Modal ─────────────────────────────────── -->
+  <div class="modal" id="deliveryLinkModal" onclick="if(event.target===this)DeliveryLinkModal.close()">
+    <div class="modal-card" style="text-align:left;">
+      <strong style="font-size:18px; color:var(--ink);">🚚 Generar Link de Entrega</strong>
+
+      <!-- Order summary -->
+      <div id="deliveryLinkOrderSummary" style="background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:14px; font-size:13px; line-height:1.6;">
+        <div><strong>Cliente:</strong> <span id="dlCustomerName">--</span></div>
+        <div><strong>Dirección:</strong> <span id="dlAddress">--</span></div>
+        <div><strong>Saldo a cobrar:</strong> <span id="dlBalance">--</span></div>
+      </div>
+
+      <!-- Delivery person phone input -->
+      <label style="display:grid; gap:5px; font-size:12px; font-weight:700; color:#374151;">
+        Teléfono del domiciliario
+        <input id="dlDeliveryPhone" type="tel" placeholder="+57 300 123 4567" style="width:100%; border:1.5px solid var(--line); border-radius:10px; padding:11px 14px; min-height:44px;">
+      </label>
+
+      <!-- Generate button -->
+      <button class="btn green full" id="dlGenerateBtn" type="button" onclick="DeliveryLinkModal.generate()">
+        🔗 Generar Link
+      </button>
+
+      <!-- Generated link result (hidden initially) -->
+      <div id="dlResultSection" style="display:none;">
+        <div style="background:var(--soft-green); border:1px solid #a7f3d0; border-radius:10px; padding:12px; margin-top:4px;">
+          <div style="font-size:11px; font-weight:700; color:#065f46; margin-bottom:6px;">Link generado (expira en 2 horas):</div>
+          <div id="dlGeneratedUrl" style="word-break:break-all; font-size:12px; color:var(--ink); font-weight:600; background:#fff; padding:8px 10px; border-radius:6px; border:1px solid var(--line);"></div>
+        </div>
+        <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;">
+          <button class="btn light" id="dlCopyBtn" type="button" onclick="DeliveryLinkModal.copyLink()" style="flex:1;">📋 Copiar</button>
+          <button class="btn whatsapp" id="dlWhatsAppBtn" type="button" onclick="DeliveryLinkModal.sendWhatsApp()" style="flex:1;" disabled>📱 Enviar por WhatsApp</button>
+        </div>
+      </div>
+
+      <!-- Close button -->
+      <button class="btn light full" type="button" onclick="DeliveryLinkModal.close()" style="margin-top:4px;">Cerrar</button>
     </div>
   </div>
 
@@ -1300,43 +620,208 @@
         }).join('') + '<option value="CANCELLED"' + (o.status === 'CANCELLED' ? ' selected' : '') + '>Cancelado</option>';
 
         var balance = Number(o.balance || 0);
-        var balanceClass = balance > 0 ? 'pending' : 'zero';
+        var balanceClass = balance > 0 ? 'text-red-600' : 'text-emerald-700';
         var slug = typeof BUSINESS_SLUG !== 'undefined' ? BUSINESS_SLUG : 'majesty';
 
-        // Loyalty badge for mobile cards
+        // Loyalty badge for mobile cards (Tailwind style)
         var loyaltyBadgeHtml = '';
         var loyaltyData = loyaltySummaries[o.customer_phone];
         if (loyaltyData) {
-          loyaltyBadgeHtml = '<span class="badge loyalty-badge" title="Fidelidad: ' + loyaltyData.stamps_count + ' de ' + loyaltyData.stamps_target + ' sellos">🎟️ ' + loyaltyData.stamps_count + '/' + loyaltyData.stamps_target + '</span>';
+          loyaltyBadgeHtml = '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-extrabold bg-amber-50 text-amber-600 ml-2" title="Fidelidad: ' + loyaltyData.stamps_count + ' de ' + loyaltyData.stamps_target + ' sellos">🎟️ ' + loyaltyData.stamps_count + '/' + loyaltyData.stamps_target + '</span>';
+        }
+
+        // Delivery link button
+        var deliveryLinkBtnHtml = '';
+        var hasDeliveryAddress = o.custom_fields && (o.custom_fields.direccion || o.custom_fields.delivery_address || o.custom_fields.address || o.custom_fields.direccion_entrega);
+        var isFinalOrCancelled = o.status === 'CANCELLED' || (typeof isDeliveredStatus === 'function' && isDeliveredStatus(o.status));
+        if (hasDeliveryAddress && !isFinalOrCancelled) {
+          deliveryLinkBtnHtml = '<button class="inline-flex items-center gap-2 bg-white text-slate-900 border border-slate-200 px-3 py-1 rounded-md font-bold" data-order-id="' + o.id + '" onclick="DeliveryLinkModal.open(\'' + o.id + '\')" type="button">🚚 Link Entrega</button>';
         }
 
         return [
-          '<div class="order-card">',
-          '  <div class="order-card-header">',
-          '    <div>',
-          '      <div class="order-card-num">#' + o.order_number + ' ' + loyaltyBadgeHtml + '</div>',
-          '      <div class="order-card-info">',
-          '        <div class="name">' + (o.customer_name || '') + '</div>',
-          '        <div class="phone">' + (o.customer_phone || '') + '</div>',
+          '<div class="bg-white border border-slate-100 rounded-lg p-4 shadow-sm">',
+          '  <div class="flex justify-between items-start gap-4">',
+          '    <div class="flex-1">',
+          '      <div class="flex items-center">',
+          '        <div class="text-lg font-extrabold">#' + o.order_number + '</div>',
+          '        ' + loyaltyBadgeHtml,
+          '      </div>',
+          '      <div class="mt-2">',
+          '        <div class="font-semibold text-sm">' + (o.customer_name || '—') + '</div>',
+          '        <div class="text-xs text-slate-500">' + (o.customer_phone || '—') + '</div>',
           '      </div>',
           '    </div>',
-          '    <div class="order-card-status">',
-          '      <select onchange="changeOrderStatus(\'' + o.id + '\', this.value)">' + statusOptions + '</select>',
+          '    <div class="w-36">',
+          '      <select class="w-full border border-slate-200 rounded-md px-2 py-1 text-sm font-bold" onchange="changeOrderStatus(\'' + o.id + '\', this.value)">' + statusOptions + '</select>',
           '    </div>',
           '  </div>',
-          '  <div class="order-card-detail">' + (o.items_text || '') + '</div>',
-          '  <div class="order-card-service" style="font-size:12px; color:#6366f1; font-weight:700;">' + (o.custom_fields && o.custom_fields.service_type ? '🧺 ' + o.custom_fields.service_type : '') + '</div>',
-          '  <div class="order-card-confirmations" style="font-size:12px;">' + (typeof buildConfirmationDisplay === 'function' ? buildConfirmationDisplay(o) : '') + '</div>',
-          '  <div class="order-card-balance ' + balanceClass + '">Saldo: ' + money.format(balance) + '</div>',
-          '  <div class="order-card-actions">',
-          '    <button class="btn green" onclick="openQrModal(\'' + o.order_number + '\')" type="button">📸 QR</button>',
-          '    <a class="btn light" href="' + (typeof buildWaLink === 'function' ? buildWaLink(o) : '#') + '" target="_blank" rel="noopener">📱 WhatsApp</a>',
-          '    <a class="btn light" href="/tiquete.html?number=' + o.order_number + '&slug=' + slug + '" target="_blank" rel="noopener">🌐 Ver</a>',
+          '  <div class="mt-3 text-sm text-slate-700">' + (o.items_text || '') + '</div>',
+          '  <div class="mt-2 text-xs font-bold text-indigo-600">' + (o.custom_fields && o.custom_fields.service_type ? '🧺 ' + o.custom_fields.service_type : '') + '</div>',
+          '  <div class="mt-2 text-xs text-slate-600">' + (typeof buildConfirmationDisplay === 'function' ? buildConfirmationDisplay(o) : '') + '</div>',
+          '  <div class="mt-3 flex items-center justify-between">',
+          '    <div class="font-extrabold ' + balanceClass + '">Saldo: ' + money.format(balance) + '</div>',
+          '    <div class="flex items-center gap-2">',
+          '      <button class="inline-flex items-center gap-2 bg-emerald-600 text-white px-3 py-1 rounded-md font-bold" onclick="openQrModal(\'' + o.order_number + '\')" type="button">📸 QR</button>',
+          '      <a class="inline-flex items-center gap-2 bg-white text-slate-900 border border-slate-200 px-3 py-1 rounded-md font-bold" href="' + (typeof buildWaLink === 'function' ? buildWaLink(o) : '#') + '" target="_blank" rel="noopener">📱 WhatsApp</a>',
+          '      <a class="inline-flex items-center gap-2 bg-white text-slate-900 border border-slate-200 px-3 py-1 rounded-md font-bold" href="/tiquete.html?number=' + o.order_number + '&slug=' + slug + '" target="_blank" rel="noopener">🌐 Ver</a>',
+          '      ' + deliveryLinkBtnHtml,
+          '    </div>',
           '  </div>',
           '</div>'
         ].join('');
       }).join('');
     }
+
+    /* ─── Delivery Link Modal Module ─────────────────────────── */
+    var DeliveryLinkModal = (function() {
+      var _currentOrder = null;
+      var _generatedUrl = '';
+
+      function getDeliveryAddress(order) {
+        var cf = order.custom_fields || {};
+        return cf.direccion || cf.delivery_address || cf.address || cf.direccion_entrega || '';
+      }
+
+      function open(orderId) {
+        var order = null;
+        if (typeof orders !== 'undefined') {
+          for (var i = 0; i < orders.length; i++) {
+            var normalized = typeof normalize === 'function' ? normalize(orders[i]) : orders[i];
+            if (normalized.id === orderId) { order = normalized; break; }
+          }
+        }
+        if (!order) { if (typeof toast === 'function') toast('Pedido no encontrado'); return; }
+
+        _currentOrder = order;
+        _generatedUrl = '';
+
+        // Populate summary
+        var moneyFmt = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
+        document.getElementById('dlCustomerName').textContent = order.customer_name || 'Sin nombre';
+        document.getElementById('dlAddress').textContent = getDeliveryAddress(order) || 'Sin dirección';
+        document.getElementById('dlBalance').textContent = moneyFmt.format(Number(order.balance || 0));
+
+        // Reset state
+        document.getElementById('dlDeliveryPhone').value = '';
+        document.getElementById('dlResultSection').style.display = 'none';
+        document.getElementById('dlGenerateBtn').disabled = false;
+        document.getElementById('dlGenerateBtn').textContent = '🔗 Generar Link';
+        updateWhatsAppButton();
+
+        // Show modal
+        document.getElementById('deliveryLinkModal').classList.add('show');
+      }
+
+      function close() {
+        document.getElementById('deliveryLinkModal').classList.remove('show');
+        _currentOrder = null;
+        _generatedUrl = '';
+      }
+
+      async function generate() {
+        if (!_currentOrder) return;
+
+        var btn = document.getElementById('dlGenerateBtn');
+        btn.disabled = true;
+        btn.textContent = 'Generando...';
+
+        try {
+          var payload = {
+            action: 'generate-token',
+            order_id: _currentOrder.id,
+            business_id: (typeof businessConfig !== 'undefined' && businessConfig.business_id) || ''
+          };
+
+          var response = await (typeof authFetch === 'function' ? authFetch : fetch)('/.netlify/functions/delivery-confirm', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+
+          if (!response.ok) {
+            var errorData = await response.json().catch(function() { return { error: 'Error desconocido' }; });
+            throw new Error(errorData.message || errorData.error || 'No se pudo generar el link');
+          }
+
+          var data = await response.json();
+          _generatedUrl = data.delivery_url || '';
+
+          // Show result
+          document.getElementById('dlGeneratedUrl').textContent = _generatedUrl;
+          document.getElementById('dlResultSection').style.display = 'block';
+          btn.textContent = '✅ Link generado';
+          updateWhatsAppButton();
+
+          if (typeof toast === 'function') toast('Link de entrega generado');
+        } catch (err) {
+          btn.disabled = false;
+          btn.textContent = '🔗 Generar Link';
+          if (typeof toast === 'function') toast(err.message || 'Error al generar link');
+        }
+      }
+
+      async function copyLink() {
+        if (!_generatedUrl) return;
+        try {
+          await navigator.clipboard.writeText(_generatedUrl);
+          if (typeof toast === 'function') toast('Link copiado al portapapeles');
+        } catch (e) {
+          if (typeof toast === 'function') toast('No se pudo copiar');
+        }
+      }
+
+      function sendWhatsApp() {
+        if (!_generatedUrl || !_currentOrder) return;
+
+        var phone = (document.getElementById('dlDeliveryPhone').value || '').replace(/\D/g, '');
+        if (!phone) return;
+
+        var moneyFmt = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
+        var customerName = _currentOrder.customer_name || 'Cliente';
+        var address = getDeliveryAddress(_currentOrder) || 'Sin dirección';
+        var balance = moneyFmt.format(Number(_currentOrder.balance || 0));
+
+        var message = [
+          '🚚 *ENTREGA PENDIENTE*',
+          '',
+          '👤 *Cliente:* ' + customerName,
+          '📍 *Dirección:* ' + address,
+          '💰 *Cobrar:* ' + balance,
+          '',
+          '🔗 *Link para confirmar entrega:*',
+          _generatedUrl,
+          '',
+          '⏰ Link expira en 2 horas.'
+        ].join('\n');
+
+        var waUrl = 'https://wa.me/' + phone + '?text=' + encodeURIComponent(message);
+        window.open(waUrl, '_blank', 'noopener');
+      }
+
+      function updateWhatsAppButton() {
+        var phone = (document.getElementById('dlDeliveryPhone').value || '').replace(/\D/g, '');
+        var btn = document.getElementById('dlWhatsAppBtn');
+        if (btn) {
+          btn.disabled = !phone || !_generatedUrl;
+        }
+      }
+
+      // Wire phone input change to enable/disable WhatsApp button
+      document.addEventListener('DOMContentLoaded', function() {
+        var phoneInput = document.getElementById('dlDeliveryPhone');
+        if (phoneInput) {
+          phoneInput.addEventListener('input', updateWhatsAppButton);
+        }
+      });
+
+      return {
+        open: open,
+        close: close,
+        generate: generate,
+        copyLink: copyLink,
+        sendWhatsApp: sendWhatsApp
+      };
+    })();
   </script>
 </body>
 </html>
