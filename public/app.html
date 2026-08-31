@@ -131,8 +131,10 @@
             </table>
           </div>
 
-          <!-- Mobile cards (rendered by app.js) -->
-          <div class="order-cards grid gap-3" id="orderCards"></div>
+          <!-- Mobile cards (rendered by app.js). Visibility is controlled by the
+               .order-cards CSS rule (hidden on desktop, grid on mobile); do not add
+               Tailwind display utilities here or they will override that rule. -->
+          <div class="order-cards" id="orderCards"></div>
 
           <!-- Kanban board (rendered by kanban-board.js, toggled) -->
           <div class="kanban-board" id="kanbanBoard"></div>
