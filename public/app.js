@@ -503,7 +503,9 @@ function renderPagination(totalItems) {
   if (!bar) return;
   const totalPages = getTotalPages(totalItems);
 
-  if (totalItems <= pageSize) {
+  // Show the control whenever there are orders, so the page-size selector is
+  // always reachable. Only hide it when the list is empty.
+  if (totalItems === 0) {
     bar.hidden = true;
     return;
   }
