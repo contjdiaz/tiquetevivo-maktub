@@ -1,0 +1,29 @@
+#!/bin/sh
+# Pre-commit hook: keep public/styles.css in sync with the Tailwind source.
+#
+# Rationale: production serves the compiled public/styles.css directly (Netlify
+# publishes the `public/` folder and does not run a build command). If someone
+# changes Tailwind utility classes in HTML/JS but forgets to recompile, prod
+# would ship stale CSS. This hook recompiles and re-stages styles.css so the
+# committed CSS always matches the source.
+#
+# Only runs when relevant inputs are staged (HTML, JS, tailwind config/source).
+# To skip intentionally: git commit --no-verify
+
+# Detect staged files that can affect the compiled CSS.
+STAGED=$(git diff --cached --name-only --diff-filter=ACM)
+
+echo "$STAGED" | grep -Eq '(\.html$|\.js$|src/styles/tailwind\.css$|tailwind\.config\.js$)' || exit 0
+
+echo "[pre-commit] Recompiling Tailwind CSS (public/styles.css)..."
+
+if ! npm run build:css --silent; then
+  echo "[pre-commit] ERROR: 'npm run build:css' failed. Fix the build before committing." >&2
+  exit 1
+fi
+
+# Re-stage the compiled stylesheet if the build changed it.
+git add public/styles.css
+
+echo "[pre-commit] public/styles.css is up to date and staged."
+exit 0

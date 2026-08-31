@@ -7,6 +7,8 @@
     "dev": "netlify dev",
     "serve": "netlify dev --offline",
     "test": "vitest --run",
+    "prepare": "git config core.hooksPath .githooks",
+    "hooks:setup": "git config core.hooksPath .githooks",
     "build:css": "npx @tailwindcss/cli -i src/styles/tailwind.css -o public/styles.css --minify",
     "watch:css": "npx @tailwindcss/cli -i src/styles/tailwind.css -o public/styles.css --watch",
     "build": "npm run build:css",
