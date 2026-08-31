@@ -551,7 +551,13 @@
     & .stat strong { display:block; font-size:28px; margin-top:8px; color:var(--ink); font-weight:900; }
 
     /* ─── Layout: table + form panel ────────────────────────── */
-    & .layout { display:grid; grid-template-columns:minmax(0,1fr) minmax(320px,390px); gap:20px; align-items:start; }
+    /* Give the orders table more room; keep the ticket form compact. */
+    & .layout { display:grid; grid-template-columns:minmax(0,1fr) 340px; gap:20px; align-items:start; }
+
+    /* On wide screens let the table breathe further and cap the form width. */
+    @media (min-width:1400px) {
+      .app-page .layout { grid-template-columns:minmax(0,1fr) 360px; gap:24px; }
+    }
 
     /* Toolbar / search */
     & .toolbar {
