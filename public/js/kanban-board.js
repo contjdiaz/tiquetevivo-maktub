@@ -321,10 +321,19 @@
     viewMode = mode === 'kanban' ? 'kanban' : 'table';
     document.body.classList.toggle('kanban-active', viewMode === 'kanban');
 
-    var btn = document.getElementById('viewToggle');
-    if (btn) {
-      btn.textContent = viewMode === 'kanban' ? '📋 Ver tabla' : '🗂️ Ver tablero';
-      btn.title = viewMode === 'kanban' ? 'Volver a la vista de tabla' : 'Cambiar a tablero Kanban';
+    // Segmented control: reflect active state on both buttons.
+    var boardBtn = document.getElementById('viewToggle');
+    var listBtn = document.getElementById('viewToggleList');
+    var isKanban = viewMode === 'kanban';
+    if (boardBtn) {
+      boardBtn.classList.toggle('is-active', isKanban);
+      boardBtn.setAttribute('aria-pressed', isKanban ? 'true' : 'false');
+      boardBtn.title = 'Cambiar a tablero Kanban';
+    }
+    if (listBtn) {
+      listBtn.classList.toggle('is-active', !isKanban);
+      listBtn.setAttribute('aria-pressed', !isKanban ? 'true' : 'false');
+      listBtn.title = 'Volver a la vista de tabla';
     }
 
     try {
@@ -345,7 +354,9 @@
     try { stored = localStorage.getItem(STORAGE_KEY); } catch (e) { /* ignore */ }
 
     var btn = document.getElementById('viewToggle');
-    if (btn) btn.addEventListener('click', toggleView);
+    if (btn) btn.addEventListener('click', function () { applyViewMode('kanban'); });
+    var listBtn = document.getElementById('viewToggleList');
+    if (listBtn) listBtn.addEventListener('click', function () { applyViewMode('table'); });
 
     // Own listeners: app.js binds the ORIGINAL render reference at parse time,
     // so the patched wrapper never fires on search/filter events.

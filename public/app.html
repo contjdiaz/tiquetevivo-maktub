@@ -79,6 +79,7 @@
           <div class="text-sm text-slate-500">Cargando...</div>
         </div>
         <div class="flex items-center gap-3">
+          <button class="hidden lg:inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-md font-bold" id="newTicketBtn" type="button" onclick="openFormDrawer()">＋ Nuevo tiquete</button>
           <button class="inline-flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-md font-bold" id="scanQrBtn" type="button" onclick="Scanner.open()">📸 Escanear QR</button>
           <button class="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-md font-bold" id="cashReportBtn" type="button">📊 Cierre de Caja</button>
           <a class="inline-flex items-center gap-2 bg-white text-slate-900 border border-slate-200 px-3 py-2 rounded-md font-bold" href="index.html">🏠</a>
@@ -103,10 +104,13 @@
               <strong class="text-lg font-extrabold">Órdenes recientes</strong>
               <div class="text-sm text-slate-500">Últimas entradas y filtros rápidos</div>
             </div>
-            <div class="flex items-center gap-2 w-full md:w-auto">
-              <input id="search" placeholder="🔍 Buscar cliente o tiquete" class="flex-1 md:w-64 px-3 py-2 border border-slate-200 rounded-md bg-white" />
+            <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
+              <input id="search" placeholder="🔍 Buscar cliente o tiquete" class="flex-1 min-w-[180px] md:w-56 px-3 py-2 border border-slate-200 rounded-md bg-white" />
               <select id="statusFilter" class="px-3 py-2 border border-slate-200 rounded-md bg-white"><option value="">Todos los estados</option></select>
-              <button id="viewToggle" type="button" class="ml-1 inline-flex items-center gap-2 bg-white text-slate-900 border border-slate-200 px-3 py-2 rounded-md font-bold">🗂️ Ver tablero</button>
+              <div class="view-switch inline-flex rounded-md border border-slate-200 bg-slate-50 p-0.5" role="group" aria-label="Cambiar vista">
+                <button id="viewToggleList" type="button" class="view-switch-btn is-active" aria-pressed="true">📋 Lista</button>
+                <button id="viewToggle" type="button" class="view-switch-btn" aria-pressed="false">🗂️ Tablero</button>
+              </div>
             </div>
           </div>
 
@@ -377,18 +381,16 @@
     function openFormDrawer() {
       var drawer = document.getElementById('formDrawer');
       var container = document.getElementById('drawerFormContainer');
-      var formPanel = document.querySelector('.panel.form-panel');
 
-      // On mobile: move the form element into the drawer
-      if (window.innerWidth <= 767) {
-        var form = document.getElementById('orderForm');
-        var receipt = document.getElementById('receiptBox');
-        if (form && !container.contains(form)) {
-          container.appendChild(form);
-        }
-        if (receipt && !container.contains(receipt)) {
-          container.appendChild(receipt);
-        }
+      // Move the form into the slide-over panel (used on both mobile drawer and
+      // desktop right-hand slide-over, so the orders table can use full width).
+      var form = document.getElementById('orderForm');
+      var receipt = document.getElementById('receiptBox');
+      if (form && !container.contains(form)) {
+        container.appendChild(form);
+      }
+      if (receipt && !container.contains(receipt)) {
+        container.appendChild(receipt);
       }
 
       drawer.classList.add('open');
@@ -429,12 +431,8 @@
       if (btn) btn.classList.add('active');
     }
 
-    // Close drawer on resize to desktop
-    window.addEventListener('resize', function() {
-      if (window.innerWidth > 767 && _drawerOpen) {
-        closeFormDrawer();
-      }
-    });
+    // The slide-over is used on both mobile and desktop, so no forced close on
+    // resize is needed. The form is returned to its panel on close().
 
     /* ─── Coupon Redemption Module ────────────────────────── */
     var CouponRedemption = (function() {
