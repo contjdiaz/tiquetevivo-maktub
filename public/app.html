@@ -138,6 +138,25 @@
 
           <!-- Kanban board (rendered by kanban-board.js, toggled) -->
           <div class="kanban-board" id="kanbanBoard"></div>
+
+          <!-- Pagination controls (rendered by app.js; hidden when a single page) -->
+          <div class="pagination" id="pagination" hidden>
+            <div class="pagination-info" id="paginationInfo"></div>
+            <div class="pagination-controls">
+              <label class="pagination-size">
+                Por página
+                <select id="pageSizeSelect">
+                  <option value="10">10</option>
+                  <option value="25" selected>25</option>
+                  <option value="50">50</option>
+                  <option value="100">100</option>
+                </select>
+              </label>
+              <button type="button" id="pagePrev" class="pagination-btn" aria-label="Página anterior">‹ Anterior</button>
+              <span class="pagination-pages" id="paginationPages"></span>
+              <button type="button" id="pageNext" class="pagination-btn" aria-label="Página siguiente">Siguiente ›</button>
+            </div>
+          </div>
         </div>
 
         <!-- Form panel (desktop sidebar / mobile drawer) -->
@@ -597,15 +616,15 @@
       if (!container) return;
       if (typeof orders === 'undefined' || typeof normalize === 'undefined') return;
 
-      var q = document.getElementById('search') ? document.getElementById('search').value.toLowerCase() : '';
-      var f = document.getElementById('statusFilter') ? document.getElementById('statusFilter').value : '';
+      // Reuse the shared filtering + pagination so cards match the table page.
+      var filtered = (typeof getVisibleOrders === 'function')
+        ? getVisibleOrders()
+        : orders.map(normalize);
+      var visible = (typeof getPageSlice === 'function')
+        ? getPageSlice(filtered)
+        : filtered;
 
-      var visible = orders.map(normalize).filter(function(o) {
-        return (!f || o.status === f) &&
-          ('' + o.order_number + ' ' + o.customer_name + ' ' + o.items_text + ' ' + (o.custom_fields && o.custom_fields.rack_location ? o.custom_fields.rack_location : '')).toLowerCase().indexOf(q) !== -1;
-      });
-
-      if (visible.length === 0) {
+      if (filtered.length === 0) {
         container.innerHTML = '<div class="empty">No hay pedidos con este filtro.</div>';
         return;
       }

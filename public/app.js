@@ -448,6 +448,88 @@ let currentIntakePhoto = null;
 let pendingDeliveryUpdate = null; // { orderId, newStatus }
 const money = new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 });
 
+// ─── Pagination state (client-side, shared by table + card views) ─────
+let currentPage = 1;
+let pageSize = (function () {
+  const stored = parseInt(localStorage.getItem("tiquete_page_size"), 10);
+  return [10, 25, 50, 100].includes(stored) ? stored : 25;
+})();
+
+/**
+ * Returns the full filtered (search + status) list of orders, normalized and
+ * sorted the same way for both the table and the mobile cards.
+ */
+function getVisibleOrders() {
+  const searchEl = document.getElementById("search");
+  const filterEl = document.getElementById("statusFilter");
+  const q = searchEl ? searchEl.value.toLowerCase() : "";
+  const f = filterEl ? filterEl.value : "";
+  return orders.map(normalize).filter(o =>
+    (!f || o.status === f) &&
+    (`${o.order_number} ${o.customer_name} ${o.items_text} ${o.custom_fields?.rack_location || ""}`.toLowerCase().includes(q))
+  );
+}
+
+/** Total number of pages for a given filtered-list length. */
+function getTotalPages(totalItems) {
+  return Math.max(1, Math.ceil(totalItems / pageSize));
+}
+
+/** Clamp currentPage into a valid range for the current filtered list. */
+function clampPage(totalItems) {
+  const totalPages = getTotalPages(totalItems);
+  if (currentPage > totalPages) currentPage = totalPages;
+  if (currentPage < 1) currentPage = 1;
+}
+
+/** Returns just the slice of orders for the current page. */
+function getPageSlice(list) {
+  clampPage(list.length);
+  const start = (currentPage - 1) * pageSize;
+  return list.slice(start, start + pageSize);
+}
+
+/** Reset to the first page (used when search/filter changes). */
+function resetPage() {
+  currentPage = 1;
+}
+
+/**
+ * Render the pagination controls for the given filtered-list length.
+ * Hides the control entirely when everything fits on one page.
+ */
+function renderPagination(totalItems) {
+  const bar = document.getElementById("pagination");
+  if (!bar) return;
+  const totalPages = getTotalPages(totalItems);
+
+  if (totalItems <= pageSize) {
+    bar.hidden = true;
+    return;
+  }
+  bar.hidden = false;
+
+  const start = (currentPage - 1) * pageSize + 1;
+  const end = Math.min(currentPage * pageSize, totalItems);
+
+  const info = document.getElementById("paginationInfo");
+  if (info) info.textContent = `Mostrando ${start}–${end} de ${totalItems} pedidos`;
+
+  const pages = document.getElementById("paginationPages");
+  if (pages) pages.textContent = `Página ${currentPage} de ${totalPages}`;
+
+  const prev = document.getElementById("pagePrev");
+  const next = document.getElementById("pageNext");
+  if (prev) prev.disabled = currentPage <= 1;
+  if (next) next.disabled = currentPage >= totalPages;
+}
+
+/** Go to a specific page (clamped) and re-render both views. */
+function goToPage(page) {
+  currentPage = page;
+  render();
+}
+
 // ─── Helpers ─────────────────────────────────────────────────────────
 
 function toast(message) {
@@ -875,13 +957,18 @@ window.changeOrderStatus = changeOrderStatus;
 
 function render() {
   orders = orders.map(normalize);
-  const q = document.getElementById("search").value.toLowerCase();
-  const f = document.getElementById("statusFilter").value;
   const statusLabels = getStatusLabels();
-  const visible = orders.filter(o => (!f || o.status === f) && (`${o.order_number} ${o.customer_name} ${o.items_text} ${o.custom_fields?.rack_location || ""}`.toLowerCase().includes(q)));
+
+  // Full filtered list (for counts/pagination) and the current page slice (for rows).
+  const filtered = getVisibleOrders();
+  clampPage(filtered.length);
+  const visible = getPageSlice(filtered);
 
   // Mobile cards: delegate to renderOrderCards() defined in app.html
   if (typeof renderOrderCards === "function") renderOrderCards();
+
+  // Pagination controls reflect the full filtered count.
+  renderPagination(filtered.length);
 
   // Build status select options HTML from config
   const statusOptionsHtml = (businessConfig.status_flow_config || []).map(entry =>
@@ -1363,8 +1450,30 @@ async function createOrder(payload) {
 // ─── Event Listeners ─────────────────────────────────────────────────
 
 document.getElementById("syncBtn").addEventListener("click", sync);
-document.getElementById("search").addEventListener("input", render);
-document.getElementById("statusFilter").addEventListener("change", render);
+document.getElementById("search").addEventListener("input", () => { resetPage(); render(); });
+document.getElementById("statusFilter").addEventListener("change", () => { resetPage(); render(); });
+
+// ─── Pagination controls ──────────────────────────────────────────────
+(function wirePagination() {
+  const prev = document.getElementById("pagePrev");
+  const next = document.getElementById("pageNext");
+  const sizeSel = document.getElementById("pageSizeSelect");
+
+  if (prev) prev.addEventListener("click", () => goToPage(currentPage - 1));
+  if (next) next.addEventListener("click", () => goToPage(currentPage + 1));
+  if (sizeSel) {
+    sizeSel.value = String(pageSize);
+    sizeSel.addEventListener("change", () => {
+      const val = parseInt(sizeSel.value, 10);
+      if ([10, 25, 50, 100].includes(val)) {
+        pageSize = val;
+        try { localStorage.setItem("tiquete_page_size", String(val)); } catch (e) { /* ignore */ }
+        resetPage();
+        render();
+      }
+    });
+  }
+})();
 
 // Wire photo evidence inputs
 wirePhotoInput({

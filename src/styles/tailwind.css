@@ -788,6 +788,33 @@
     & .bottom-nav-btn.active { color:#10b981; }
     & .bottom-nav-btn .icon { font-size:20px; line-height:1; }
 
+    /* ─── Pagination ─────────────────────────────────────────── */
+    & .pagination {
+      display:flex; flex-wrap:wrap; gap:12px;
+      align-items:center; justify-content:space-between;
+      margin-top:16px; padding-top:14px;
+      border-top:1px solid var(--line);
+    }
+    & .pagination[hidden] { display:none; }
+    & .pagination-info { color:var(--muted); font-size:13px; font-weight:700; }
+    & .pagination-controls { display:flex; flex-wrap:wrap; align-items:center; gap:10px; }
+    & .pagination-size {
+      display:inline-flex; align-items:center; gap:6px;
+      color:var(--muted); font-size:13px; font-weight:700;
+    }
+    & .pagination-size select {
+      border:1px solid var(--line); border-radius:6px;
+      padding:6px 8px; background:#fff; font-weight:700; color:var(--ink);
+    }
+    & .pagination-pages { font-size:13px; font-weight:800; color:var(--ink); min-width:110px; text-align:center; }
+    & .pagination-btn {
+      border:1px solid var(--line); background:#fff; color:var(--ink);
+      border-radius:8px; padding:8px 14px; font-weight:800; font-size:13px;
+      cursor:pointer; transition: background var(--transition), opacity var(--transition);
+    }
+    & .pagination-btn:hover:not(:disabled) { background:var(--slate-50, #f8fafc); }
+    & .pagination-btn:disabled { opacity:.45; cursor:not-allowed; }
+
     /* ─── View switch (segmented control: Lista | Tablero) ───── */
     & .view-switch-btn {
       display:inline-flex; align-items:center; gap:6px;
@@ -841,6 +868,8 @@
     &.kanban-active .kanban-board { display:block; }
     &.kanban-active .panel .table-wrap,
     &.kanban-active .panel .order-cards { display:none !important; }
+    /* Pagination applies to the list/card views, not the kanban board. */
+    &.kanban-active .panel .pagination { display:none !important; }
 
     & .kanban-fallback {
       background: var(--soft-green); border: 1px solid var(--line);
