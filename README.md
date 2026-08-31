@@ -190,4 +190,22 @@ Para instrucciones detalladas de prueba incluyendo pagos sandbox y fidelidad, ve
 npm run check
 ```
 
+## Headless testing (Playwright)
+
+Puedes ejecutar una comprobación headless que captura consola, peticiones fallidas y un screenshot.
+
+- Añadido: `tests/playwright-check.spec.js` (prueba de humo para `app.html`).
+- Scripts npm disponibles en `package.json`:
+
+```bash
+npm run playwright:install   # instala navegadores Playwright (una sola vez)
+npm run playwright:check     # ejecuta la prueba headless y escribe resultados en test-results/
+```
+
+Notas:
+- La prueba asume que el servidor static sirve `app.html` en `http://localhost:5173/app.html`. Puedes cambiar la URL con la variable de entorno `URL`.
+- La ejecución generará `test-results/playwright-screenshot.png` y `test-results/playwright-console.json`.
+- En CI añade `npm run playwright:install` antes de ejecutar la comprobación para asegurar que los navegadores estén disponibles.
+
+
 Este comando valida que todas las Netlify Functions compilen correctamente.
