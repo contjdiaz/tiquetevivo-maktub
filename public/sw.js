@@ -4,7 +4,7 @@
  * Network-first for API calls, cache-first for static resources.
  */
 
-const CACHE_NAME = 'tiquetevivo-v2';
+const CACHE_NAME = 'tiquetevivo-v5';
 const STATIC_ASSETS = [
   '/',
   '/app.html',
@@ -15,6 +15,9 @@ const STATIC_ASSETS = [
   '/js/qr-payload.js',
   '/js/qr-mode-selector.js',
   '/js/qr-renderer.js',
+  '/pagar.html',
+  '/buscar.html',
+  '/aprobar.html',
   '/js/qrcode.min.js',
   '/js/status-poller.js',
   '/js/scanner.js',

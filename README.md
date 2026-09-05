@@ -91,8 +91,9 @@ GOOGLE_SHEETS_WEBHOOK_URL=
 GOOGLE_SHEETS_WEBHOOK_TOKEN=
 
 # ─── Admin Panel ─────────────────────────────────────────────────────────────
-ADMIN_USERNAME=admin
-ADMIN_PASSWORD=TiqueteVivo2024$
+# IMPORTANTE: define credenciales fuertes y únicas antes de desplegar.
+ADMIN_USERNAME=CHANGE_ME
+ADMIN_PASSWORD=CHANGE_ME
 
 # ─── Payment Gateway (Wompi) ────────────────────────────────────────────────
 WOMPI_PUBLIC_KEY=               # Llave publica para widget de checkout

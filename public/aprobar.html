@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <title>TiqueteVivo | Aprobar Cotización</title>
+  <style>
+    :root {
+      --primary: #18a058; --primary-dark: #0d7040; --danger: #dc2626;
+      --bg: #f4f7f6; --card: #ffffff; --ink: #101828; --muted: #667085; --line: #e4e7ec;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--ink); min-height: 100vh;
+      display: flex; align-items: center; justify-content: center; padding: 16px;
+    }
+    .card {
+      width: min(420px, 100%); background: var(--card); border-radius: 16px;
+      border: 1px solid var(--line); box-shadow: 0 12px 32px rgba(16,24,40,.08); overflow: hidden;
+    }
+    .header { background: #101828; color: #fff; padding: 20px 24px; text-align: center; }
+    .header h1 { font-size: 18px; font-weight: 800; }
+    .header p { font-size: 12px; color: #98a2b3; margin-top: 4px; }
+    .body { padding: 24px; }
+    .quote-amount { font-size: 32px; font-weight: 900; color: var(--ink); text-align: center; margin: 8px 0; }
+    .quote-desc { color: var(--muted); font-size: 14px; text-align: center; margin-bottom: 20px; white-space: pre-wrap; }
+    .btn { display: block; width: 100%; padding: 14px; border: none; border-radius: 10px; font-weight: 800; font-size: 15px; cursor: pointer; margin-top: 10px; }
+    .btn-approve { background: var(--primary); color: #fff; }
+    .btn-approve:hover { background: var(--primary-dark); }
+    .btn-reject { background: #fff; color: var(--danger); border: 1px solid var(--danger); }
+    .state { text-align: center; padding: 20px; color: var(--muted); font-size: 14px; }
+    .badge { display: inline-block; padding: 6px 14px; border-radius: 999px; font-weight: 800; font-size: 14px; }
+    .badge-approved { background: #dcfce7; color: #166534; }
+    .badge-rejected { background: #fee2e2; color: #991b1b; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="header">
+      <h1 id="bizName">TiqueteVivo</h1>
+      <p>Aprobación de cotización</p>
+    </div>
+    <div class="body">
+      <div id="loading" class="state">Cargando cotización…</div>
+
+      <div id="quote" class="hidden">
+        <div class="quote-desc" id="quoteDesc"></div>
+        <div class="quote-amount" id="quoteAmount">$0</div>
+        <button class="btn btn-approve" id="approveBtn">✅ Aprobar</button>
+        <button class="btn btn-reject" id="rejectBtn">✖ Rechazar</button>
+      </div>
+
+      <div id="result" class="hidden state"></div>
+      <div id="error" class="hidden state"></div>
+    </div>
+  </div>
+
+  <script>
+    const money = new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 });
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get("id");
+    const token = params.get("token");
+
+    const el = (x) => document.getElementById(x);
+    function show(x) { el(x).classList.remove("hidden"); }
+    function hide(x) { el(x).classList.add("hidden"); }
+
+    function showError(msg) {
+      hide("loading"); hide("quote"); hide("result");
+      el("error").textContent = msg;
+      show("error");
+    }
+
+    function showResult(status) {
+      hide("loading"); hide("quote"); hide("error");
+      const label = status === "APPROVED" ? "Cotización aprobada" : "Cotización rechazada";
+      const cls = status === "APPROVED" ? "badge-approved" : "badge-rejected";
+      el("result").innerHTML = `<span class="badge ${cls}">${label}</span><p style="margin-top:12px;">¡Gracias! Ya notificamos al negocio.</p>`;
+      show("result");
+    }
+
+    async function load() {
+      if (!id || !token) return showError("Enlace inválido.");
+      try {
+        const res = await fetch(`/api/approval-decide?id=${encodeURIComponent(id)}&token=${encodeURIComponent(token)}`);
+        const data = await res.json();
+
+        if (res.status === 403) return showError("Esta cotización ha expirado.");
+        if (!res.ok) return showError("No encontramos esta cotización.");
+        if (data.already_decided) return showResult(data.status);
+
+        const a = data.approval;
+        el("bizName").textContent = a.business_name || "TiqueteVivo";
+        el("quoteDesc").textContent = a.description || "Cotización de tu orden";
+        el("quoteAmount").textContent = money.format(a.amount || 0);
+        hide("loading"); show("quote");
+      } catch {
+        showError("Ocurrió un error al cargar. Intenta de nuevo.");
+      }
+    }
+
+    async function decide(decision) {
+      el("approveBtn").disabled = true;
+      el("rejectBtn").disabled = true;
+      try {
+        const res = await fetch("/api/approval-decide", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "decide", id, token, decision })
+        });
+        const data = await res.json();
+        if (res.status === 403) return showError("Esta cotización ha expirado.");
+        if (!res.ok || !data.success) return showError("No se pudo registrar tu decisión.");
+        showResult(data.status);
+      } catch {
+        showError("Ocurrió un error. Intenta de nuevo.");
+        el("approveBtn").disabled = false;
+        el("rejectBtn").disabled = false;
+      }
+    }
+
+    el("approveBtn").addEventListener("click", () => decide("approve"));
+    el("rejectBtn").addEventListener("click", () => decide("reject"));
+    load();
+  </script>
+</body>
+</html>

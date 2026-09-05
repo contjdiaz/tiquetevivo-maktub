@@ -195,3 +195,38 @@ describe("_template-engine: renderTemplate", () => {
     expect(result).toBe("Días: 0");
   });
 });
+
+describe("_template-engine: approval templates", () => {
+  it("selects the built-in approval_requested template", () => {
+    const result = selectTemplate("approval_requested", null, null);
+    expect(result).toContain("{approval_amount}");
+    expect(result).toContain("{approval_link}");
+  });
+
+  it("renders approval_requested placeholders", () => {
+    const template = selectTemplate("approval_requested", null, null);
+    const rendered = renderTemplate(template, {
+      customer_name: "Ana",
+      order_number: "1003",
+      approval_amount: 250000,
+      approval_description: "Cambio de pantalla",
+      approval_link: "https://x.co/aprobar.html?id=1&token=t"
+    }, { name: "Taller Demo" });
+
+    expect(rendered).toContain("Taller Demo");
+    expect(rendered).toContain("250000");
+    expect(rendered).toContain("Cambio de pantalla");
+    expect(rendered).toContain("https://x.co/aprobar.html?id=1&token=t");
+    expect(rendered).not.toContain("{approval_");
+  });
+
+  it("renders approval_decided decision", () => {
+    const template = selectTemplate("approval_decided", null, null);
+    const rendered = renderTemplate(template, {
+      order_number: "1003",
+      approval_decision: "Aprobada"
+    }, { name: "Taller Demo" });
+    expect(rendered).toContain("Aprobada");
+    expect(rendered).toContain("1003");
+  });
+});

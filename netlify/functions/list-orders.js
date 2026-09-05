@@ -133,7 +133,8 @@ export const handler = async (event) => {
             status_flow_config: business.status_flow_config || [],
             custom_fields_config: business.custom_fields_config || [],
             loyalty_config: business.loyalty_config || { enabled: true, target: 5 },
-            vertical_emoji: verticalEmoji
+            vertical_emoji: verticalEmoji,
+            payment_config: business.payment_config || {}
           } : null,
           loyalty
         });
@@ -217,7 +218,8 @@ export const handler = async (event) => {
           status_flow_config: business.status_flow_config || [],
           custom_fields_config: business.custom_fields_config || [],
           loyalty_config: business.loyalty_config || { enabled: true, target: 5 },
-          vertical_emoji: verticalEmoji
+          vertical_emoji: verticalEmoji,
+          payment_config: business.payment_config || {}
         },
         loyalty
       });

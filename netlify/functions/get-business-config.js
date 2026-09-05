@@ -49,6 +49,10 @@ export const handler = async (event) => {
       }
     }
 
+    // Payment details are meant to be shown to the customer to complete a
+    // direct transfer, so they are part of the public-safe payload.
+    const paymentConfig = business.payment_config || {};
+
     // Authenticated with read permission: return full configuration
     if (isAuthenticated) {
       return json(200, {
@@ -63,7 +67,8 @@ export const handler = async (event) => {
         status_flow_config: business.status_flow_config || [],
         whatsapp_templates_config: business.whatsapp_templates_config || {},
         loyalty_config: business.loyalty_config || { enabled: true, target: 5 },
-        reactivation_config: business.reactivation_config || { enabled: true, threshold_days: 30, monthly_limit: 50 }
+        reactivation_config: business.reactivation_config || { enabled: true, threshold_days: 30, monthly_limit: 50 },
+        payment_config: paymentConfig
       });
     }
 
@@ -79,7 +84,8 @@ export const handler = async (event) => {
       loyalty_config: {
         enabled: loyaltyConfig.enabled,
         target: loyaltyConfig.target
-      }
+      },
+      payment_config: paymentConfig
     });
   } catch (error) {
     return json(500, { error: error.message });

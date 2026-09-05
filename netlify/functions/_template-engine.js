@@ -39,12 +39,37 @@ const PAYMENT_CONFIRMED_TEMPLATE =
   "¡Gracias por tu pago! 🙏";
 
 /**
+ * Default template for the `approval_requested` trigger.
+ * Sent when the business requests the customer to approve a quote.
+ * Variables: {business_name}, {order_number}, {approval_amount},
+ *            {approval_description}, {approval_link}
+ */
+const APPROVAL_REQUESTED_TEMPLATE =
+  "🧾 *{business_name}*\n\n" +
+  "Hola {customer_name}, tenemos una cotización para tu orden #{order_number}:\n\n" +
+  "{approval_description}\n" +
+  "Valor: ${approval_amount}\n\n" +
+  "Aprueba o rechaza desde aquí:\n{approval_link}";
+
+/**
+ * Default template for the `approval_decided` trigger.
+ * Confirms the customer's decision back to them.
+ * Variables: {business_name}, {order_number}, {approval_decision}
+ */
+const APPROVAL_DECIDED_TEMPLATE =
+  "✅ *{business_name}*\n\n" +
+  "Recibimos tu decisión sobre la orden #{order_number}: *{approval_decision}*.\n\n" +
+  "¡Gracias!";
+
+/**
  * Registry of built-in default templates by trigger event.
  * These are used as fallback when neither business nor vertical templates are configured.
  */
 const BUILTIN_TEMPLATES = {
   customer_reactivation: CUSTOMER_REACTIVATION_TEMPLATE,
-  payment_confirmed: PAYMENT_CONFIRMED_TEMPLATE
+  payment_confirmed: PAYMENT_CONFIRMED_TEMPLATE,
+  approval_requested: APPROVAL_REQUESTED_TEMPLATE,
+  approval_decided: APPROVAL_DECIDED_TEMPLATE
 };
 
 /**
@@ -109,7 +134,12 @@ export function renderTemplate(template, orderData, businessData) {
     coupon_link: order.coupon_link ?? order.couponLink ?? "",
     // Payment-specific placeholders
     amount_paid: order.amount_paid != null ? String(order.amount_paid) : "",
-    new_balance: order.new_balance != null ? String(order.new_balance) : ""
+    new_balance: order.new_balance != null ? String(order.new_balance) : "",
+    // Approval-specific placeholders
+    approval_amount: order.approval_amount != null ? String(order.approval_amount) : "",
+    approval_description: order.approval_description ?? order.approvalDescription ?? "",
+    approval_link: order.approval_link ?? order.approvalLink ?? "",
+    approval_decision: order.approval_decision ?? order.approvalDecision ?? ""
   };
 
   // Replace all placeholders using a single regex pass

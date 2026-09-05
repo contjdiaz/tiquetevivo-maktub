@@ -118,12 +118,23 @@
       <!-- Loyalty Stamp Widget (hidden until loyalty data loads and loyalty is enabled) -->
       <div id="loyaltyWidgetContainer" style="display:none;"></div>
 
+      <!-- Bloque de Aprobación de Cotización (oculto hasta que haya una pendiente) -->
+      <div id="approvalBox" class="hidden bg-amber-50 border-2 border-amber-200 rounded-lg p-4 grid gap-3">
+        <strong class="text-amber-800 text-sm font-extrabold">🧾 Cotización pendiente de aprobación</strong>
+        <div class="text-amber-900 text-sm leading-relaxed" id="approvalDesc"></div>
+        <div class="text-amber-900 text-xl font-extrabold" id="approvalAmount">$0</div>
+        <div class="grid grid-cols-2 gap-2">
+          <button id="approveBtn" class="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-2 px-3 rounded">✅ Aprobar</button>
+          <button id="rejectBtn" class="bg-white text-red-600 border border-red-500 font-extrabold py-2 px-3 rounded">✖ Rechazar</button>
+        </div>
+        <div id="approvalResult" class="hidden text-sm font-extrabold text-center"></div>
+      </div>
+
       <!-- Módulo de Recaudo Digital -->
       <div id="paymentMethodsBox" class="bg-emerald-50 border-dashed border-2 border-emerald-200 rounded-lg p-4 grid gap-3">
         <strong class="text-emerald-800 text-sm font-extrabold">💳 Medios de Pago / Transferencia Directa</strong>
-        <div class="text-emerald-800 text-sm leading-relaxed">
-          • <strong>Nequi / Daviplata:</strong> 310 268 8991<br>
-          • <strong>Bancolombia Ahorros:</strong> 123-456789-01
+        <div class="text-emerald-800 text-sm leading-relaxed" id="paymentMethodsDetail">
+          <!-- Rendered dynamically from business.payment_config -->
         </div>
         <a id="payProofBtn" class="mt-2 inline-flex items-center justify-center bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-2 px-3 rounded" href="#" target="_blank" rel="noopener">
           📲 Enviar Comprobante de Pago
@@ -224,6 +235,117 @@
       { status_key: "DELIVERED", display_label: "Entregado" }
     ];
 
+    // Default direct-transfer payment details, used only when the business
+    // has not configured its own payment_config (keeps the demo working).
+    const DEFAULT_PAYMENT_CONFIG = {
+      nequi: "310 268 8991",
+      daviplata: "310 268 8991",
+      bancolombia: "123-456789-01"
+    };
+
+    /**
+     * Escape a string for safe insertion as HTML text.
+     */
+    function escapeHtml(value) {
+      return String(value == null ? "" : value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    }
+
+    /**
+     * Render the direct-transfer payment methods from the business payment_config.
+     * Falls back to DEFAULT_PAYMENT_CONFIG when the business has none configured.
+     * Each business shows its own Nequi/Daviplata/Bancolombia accounts.
+     * @param {object|null|undefined} paymentConfig
+     */
+    function renderPaymentMethods(paymentConfig) {
+      const container = document.getElementById("paymentMethodsDetail");
+      if (!container) return;
+
+      const cfg = (paymentConfig && Object.keys(paymentConfig).length > 0)
+        ? paymentConfig
+        : DEFAULT_PAYMENT_CONFIG;
+
+      const lines = [];
+      // Nequi and Daviplata often share the same number; group when equal.
+      if (cfg.nequi && cfg.daviplata && cfg.nequi === cfg.daviplata) {
+        lines.push(`• <strong>Nequi / Daviplata:</strong> ${escapeHtml(cfg.nequi)}`);
+      } else {
+        if (cfg.nequi) lines.push(`• <strong>Nequi:</strong> ${escapeHtml(cfg.nequi)}`);
+        if (cfg.daviplata) lines.push(`• <strong>Daviplata:</strong> ${escapeHtml(cfg.daviplata)}`);
+      }
+      if (cfg.bancolombia) lines.push(`• <strong>Bancolombia Ahorros:</strong> ${escapeHtml(cfg.bancolombia)}`);
+      if (cfg.account_holder) lines.push(`• <strong>Titular:</strong> ${escapeHtml(cfg.account_holder)}`);
+
+      // If the business explicitly configured an empty object earlier we still
+      // rendered defaults; here we guard against an all-empty result.
+      const paymentBox = document.getElementById("paymentMethodsBox");
+      if (lines.length === 0) {
+        if (paymentBox) paymentBox.style.display = "none";
+        return;
+      }
+      if (paymentBox) paymentBox.style.display = "";
+      container.innerHTML = lines.join("<br>");
+    }
+
+    // Holds the current pending approval for inline approve/reject.
+    let currentApproval = null;
+
+    /**
+     * Renders the pending approval (quote) block and wires the decision buttons.
+     * @param {{ id: string, amount: number, description: string, token: string }} approval
+     */
+    function renderApproval(approval) {
+      if (!approval || !approval.id || !approval.token) return;
+      currentApproval = approval;
+      const box = document.getElementById("approvalBox");
+      document.getElementById("approvalDesc").textContent = approval.description || "Cotización de tu orden";
+      document.getElementById("approvalAmount").textContent = money.format(approval.amount || 0);
+      box.classList.remove("hidden");
+    }
+
+    async function decideApproval(decision) {
+      if (!currentApproval) return;
+      const approveBtn = document.getElementById("approveBtn");
+      const rejectBtn = document.getElementById("rejectBtn");
+      approveBtn.disabled = true;
+      rejectBtn.disabled = true;
+      try {
+        const res = await fetch("/api/approval-decide", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "decide",
+            id: currentApproval.id,
+            token: currentApproval.token,
+            decision
+          })
+        });
+        const data = await res.json();
+        const result = document.getElementById("approvalResult");
+        if (res.ok && data.success) {
+          const approved = data.status === "APPROVED";
+          result.textContent = approved ? "✅ Cotización aprobada. ¡Gracias!" : "Cotización rechazada.";
+          result.classList.remove("hidden");
+          result.classList.add(approved ? "text-emerald-700" : "text-red-600");
+          approveBtn.classList.add("hidden");
+          rejectBtn.classList.add("hidden");
+        } else {
+          result.textContent = "No se pudo registrar tu decisión. Intenta de nuevo.";
+          result.classList.remove("hidden");
+          approveBtn.disabled = false;
+          rejectBtn.disabled = false;
+        }
+      } catch {
+        approveBtn.disabled = false;
+        rejectBtn.disabled = false;
+      }
+    }
+
+    document.getElementById("approveBtn").addEventListener("click", () => decideApproval("approve"));
+    document.getElementById("rejectBtn").addEventListener("click", () => decideApproval("reject"));
+
     /**
      * Render the status stepper dynamically from the business status_flow_config.
      * @param {Array} statusFlow - Array of { status_key, display_label }
@@ -253,9 +375,14 @@
       const orderNumber = params.get("number") || params.get("id") || "8707";
       const slug = params.get("slug") || "majesty";
 
+      // Render default payment methods immediately; overwritten with the
+      // business-specific config once it loads (or kept as fallback).
+      renderPaymentMethods();
+
       try {
-        // Fetch orders with business config included (status_flow_config, vertical_emoji)
-        const res = await fetch(`/api/list-orders?slug=${slug}&include_business=1`);
+        // Public endpoint: returns the single order + business public config.
+        // (list-orders requires auth; the customer ticket has no JWT.)
+        const res = await fetch(`/api/public-ticket?slug=${encodeURIComponent(slug)}&number=${encodeURIComponent(orderNumber)}`);
         if (!res.ok) throw new Error();
         const response = await res.json();
 
@@ -275,11 +402,17 @@
         // Store business config for stepper and emoji rendering
         if (bizData) {
           businessConfig = bizData;
+          renderPaymentMethods(bizData.payment_config);
         }
 
         // Store loyalty data from API response
         if (response && response.loyalty) {
           loyaltyData = response.loyalty;
+        }
+
+        // Render pending approval (quote) block if present
+        if (response && response.approval) {
+          renderApproval(response.approval);
         }
 
         // Render the stepper from business status_flow_config or fallback
@@ -309,11 +442,12 @@
           renderFallback(orderNumber);
         }
       } catch {
-        // Fallback: try legacy endpoint format or localStorage
+        // Fallback: try public endpoint returning a bare list, then localStorage
         try {
-          const res = await fetch(`/api/list-orders?slug=${slug}`);
+          const res = await fetch(`/api/public-ticket?slug=${encodeURIComponent(slug)}&number=${encodeURIComponent(orderNumber)}`);
           if (res.ok) {
-            const list = await res.json();
+            const resp = await res.json();
+            const list = (resp && resp.orders) ? resp.orders : (Array.isArray(resp) ? resp : []);
             renderStepper(DEFAULT_STATUS_FLOW);
             const order = list.find(o => String(o.order_number) === String(orderNumber) || String(o.id) === String(orderNumber));
             if (order) {

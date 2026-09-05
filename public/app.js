@@ -696,12 +696,44 @@ function generateQR(targetElement, data, size) {
 
 // ─── WhatsApp Message Templates ──────────────────────────────────────
 
+// Default direct-transfer payment details, used when the business has not
+// configured its own payment_config. Keeps existing behavior for the demo.
+const DEFAULT_PAYMENT_CONFIG = {
+  nequi: "310 268 8991",
+  daviplata: "310 268 8991",
+  bancolombia: "123-456789-01"
+};
+
+/**
+ * Builds the list of "medios de pago" lines for WhatsApp templates from the
+ * business payment_config. Falls back to DEFAULT_PAYMENT_CONFIG when empty,
+ * so each business shows its own Nequi/Daviplata/Bancolombia accounts.
+ * @returns {string[]} Lines like "• Nequi / Daviplata: 3100000000"
+ */
+function buildPaymentMethodLines() {
+  const cfg = (businessConfig && businessConfig.payment_config && Object.keys(businessConfig.payment_config).length > 0)
+    ? businessConfig.payment_config
+    : DEFAULT_PAYMENT_CONFIG;
+
+  const lines = [];
+  if (cfg.nequi && cfg.daviplata && cfg.nequi === cfg.daviplata) {
+    lines.push(`• Nequi / Daviplata: ${cfg.nequi}`);
+  } else {
+    if (cfg.nequi) lines.push(`• Nequi: ${cfg.nequi}`);
+    if (cfg.daviplata) lines.push(`• Daviplata: ${cfg.daviplata}`);
+  }
+  if (cfg.bancolombia) lines.push(`• Bancolombia Ahorros: ${cfg.bancolombia}`);
+  if (cfg.account_holder) lines.push(`• Titular: ${cfg.account_holder}`);
+  return lines.length > 0 ? lines : [`• Nequi / Daviplata: ${DEFAULT_PAYMENT_CONFIG.nequi}`];
+}
+
 function buildWhatsAppMessage(order, templateName) {
   const o = normalize(order);
   const template = templateName || order.templateName || "default";
   const ticketUrl = buildTicketUrl(o.order_number);
   const name = o.customer_name || "Cliente";
   const businessName = businessConfig.business_name || "TiqueteVivo";
+  const paymentLines = buildPaymentMethodLines();
   const address = o.customerAddress || "";
 
   switch (template) {
@@ -776,8 +808,7 @@ function buildWhatsAppMessage(order, templateName) {
         `*${money.format(o.balance)}*`,
         ``,
         `🏦 *Medios de Pago Disponibles:*`,
-        `• Nequi / Daviplata: 310 268 8991`,
-        `• Bancolombia Ahorros: 123-456789-01`,
+        ...paymentLines,
         ``,
         `🌱 *Ver Tiquete Digital:*`,
         `${ticketUrl}`,
@@ -1026,10 +1057,14 @@ function render() {
             const cf = o.custom_fields || {};
             const hasAddr = cf.direccion || cf.delivery_address || cf.address || cf.direccion_entrega;
             const isFinal = o.status === 'CANCELLED' || isDeliveredStatus(o.status);
+            let extra = '';
             if (hasAddr && !isFinal) {
-              return `<button class="inline-flex items-center gap-2 bg-white text-slate-900 border border-slate-200 px-3 py-1 rounded-md font-bold" data-order-id="${o.id}" onclick="DeliveryLinkModal.open('${o.id}')" type="button" title="Generar link de entrega">🚚 Link Entrega</button>`;
+              extra += `<button class="inline-flex items-center gap-2 bg-white text-slate-900 border border-slate-200 px-3 py-1 rounded-md font-bold" data-order-id="${o.id}" onclick="DeliveryLinkModal.open('${o.id}')" type="button" title="Generar link de entrega">🚚 Link Entrega</button>`;
             }
-            return '';
+            if (!isFinal) {
+              extra += `<button class="inline-flex items-center gap-2 bg-white text-slate-900 border border-slate-200 px-3 py-1 rounded-md font-bold" data-order-id="${o.id}" onclick="requestApproval('${o.id}')" type="button" title="Enviar cotización para aprobación del cliente">🧾 Cotización</button>`;
+            }
+            return extra;
           })()}
         </div>
       </td>
@@ -1931,6 +1966,56 @@ const DeliveryLinkModal = (() => {
 
 // Expose globally for onclick handlers in HTML
 window.DeliveryLinkModal = DeliveryLinkModal;
+
+/**
+ * Requests a quote approval from the customer for a given order.
+ * Prompts the operator for amount + description, calls approval-decide
+ * (action: generate), which creates the request and sends a WhatsApp link.
+ * The customer approves/rejects from /aprobar.html.
+ */
+async function requestApproval(orderId) {
+  const order = orders.find(o => o.id === orderId);
+  if (!order) { toast("Pedido no encontrado"); return; }
+  if (!businessConfig.business_id) { toast("Configuración del negocio no disponible"); return; }
+
+  const amountRaw = window.prompt("Valor de la cotización (COP):", String(order.total || ""));
+  if (amountRaw === null) return; // cancelled
+  const amount = Number(String(amountRaw).replace(/[^0-9.]/g, ""));
+  if (!Number.isFinite(amount) || amount < 0) { toast("Valor inválido"); return; }
+
+  const description = window.prompt("Descripción de la cotización (opcional):", order.items_text || "") || "";
+
+  try {
+    const res = await authFetch("/api/approval-decide", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "generate",
+        order_id: orderId,
+        business_id: businessConfig.business_id,
+        amount,
+        description
+      })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || err.error || "Error al solicitar aprobación");
+    }
+    const data = await res.json();
+    // The link was sent by WhatsApp automatically; also offer to copy it.
+    try {
+      await navigator.clipboard.writeText(data.approval_link);
+      toast("Cotización enviada por WhatsApp. Link copiado al portapapeles.");
+    } catch {
+      toast("Cotización enviada por WhatsApp.");
+    }
+  } catch (err) {
+    toast(err.message || "Error al solicitar aprobación");
+  }
+}
+
+// Expose globally for onclick handlers in HTML
+window.requestApproval = requestApproval;
 
 /**
  * Guess vertical slug from vertical name for theming.

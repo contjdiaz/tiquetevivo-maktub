@@ -6,6 +6,7 @@ import { sendWhatsAppMessage, buildFallbackLink, logWhatsAppMessage } from "./_w
 import { getBusinessConfig } from "./_vertical-config.js";
 import { selectTemplate, renderTemplate } from "./_template-engine.js";
 import { validatePhoto, uploadPhoto } from "./_photo-storage.js";
+import { upsertCustomer } from "./_customers.js";
 
 /**
  * Validates and formats order items for paid-plan businesses.
@@ -173,6 +174,20 @@ export const handler = async (event) => {
     // Generate a unique, non-guessable ticket token for public ticket access
     const ticket_token = randomUUID();
 
+    // --- Customer entity: create/link (best-effort, never blocks the order) ---
+    let customerId = null;
+    try {
+      const result = await upsertCustomer(supabase, {
+        businessId: business.id,
+        name: body.customerName,
+        phone: phoneResult.value,
+        address: body.customerAddress || body.address || null
+      });
+      customerId = result.id;
+    } catch (custErr) {
+      console.error("[create-order] customer link error:", custErr.message);
+    }
+
     const payload = {
       business_id: business.id,
       order_number: orderNumber,
@@ -185,6 +200,9 @@ export const handler = async (event) => {
       custom_fields: customFields,
       ticket_token
     };
+
+    // Attach customer_id only when available (column may not exist pre-migration).
+    if (customerId) payload.customer_id = customerId;
 
     // Add optional columns only if values are provided
     if (body.dueDate) payload.due_date = body.dueDate;

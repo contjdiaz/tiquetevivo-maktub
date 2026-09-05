@@ -16,7 +16,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import * as fc from 'fast-check';
 
-// The exact set of fields allowed in an unauthenticated response
+// The exact set of fields allowed in an unauthenticated response.
+// payment_config is public-safe on purpose: it holds the direct-transfer
+// details (Nequi/Daviplata/Bancolombia) that the business wants customers to
+// see in order to pay. It never contains gateway secrets.
 const PUBLIC_SAFE_FIELDS = [
   'business_name',
   'business_slug',
@@ -24,7 +27,8 @@ const PUBLIC_SAFE_FIELDS = [
   'vertical_name',
   'status_flow_config',
   'custom_fields_config',
-  'loyalty_config'
+  'loyalty_config',
+  'payment_config'
 ];
 
 // Fields that must NEVER appear in unauthenticated responses
